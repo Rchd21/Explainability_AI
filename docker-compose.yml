@@ -1,0 +1,53 @@
+##############################
+# Multi-service backend stack
+##############################
+
+services:
+  ########################################
+  # Frontend APP - Unified user entrypoint for both FastAPI backend project
+  ########################################
+  frontend_app:
+    container_name: frontend_app
+    build: ./services/frontend_app
+    # Only this service exposes a port to the host.
+    # Access it via: http://localhost:${FRONTEND_APP_PORT} (define global.env)
+    ports:
+      - ${FRONTEND_APP_PORT}:80
+    depends_on:
+      - deepfake_audio_detection
+      - lung_cancer_detection
+    networks:
+      - backend
+
+  ########################################
+  # Deepfake Audio Detection
+  ########################################
+  deepfake_audio_detection:
+    container_name: deepfake_audio_detection
+    build: ./services/deepfake_audio_detection
+    env_file:
+      - ./config/global.env
+      - ./config/deepfake_audio_detection.env
+    networks:
+      - backend
+
+  ########################################
+  # Lung Cancer Detection
+  ########################################
+  lung_cancer_detection:
+    container_name: lung_cancer_detection
+    build: ./services/lung_cancer_detection
+    env_file:
+      - ./config/global.env
+      - ./config/lung_cancer_detection.env
+    networks:
+      - backend
+
+##############################
+# Networks
+##############################
+networks:
+  # Internal network for all backend services.
+  # Only 'frontend_app' exposes a port to the outside world.
+  backend:
+    driver: bridge

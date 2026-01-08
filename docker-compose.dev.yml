@@ -1,0 +1,35 @@
+##############################################
+# Development stack
+# - Hot-reload enabled (uvicorn --reload)
+# - All services exposed to host for debugging
+# - Source code mounted via volumes
+##############################################
+
+services:
+  ##############################################
+  # Deepfake Audio Detection SERVICE (DEV)
+  # - Exposed to host for debugging: http://localhost:8881
+  # - Hot reload enabled
+  ##############################################
+  deepfake_audio_detection:
+    ports:
+      - "8881:8000"
+      # Map internal port 8000 → host port 8881 (dev only)
+    volumes:
+      - ./services/deepfake_audio_detection:/app    # Mount source code for live editing
+    command: >
+      uvicorn entrypoint:app --host 0.0.0.0 --port 8000 --reload
+
+  ##############################################
+  # Lung Cancer Detection SERVICE (DEV)
+  # - Exposed to host for debugging: http://localhost:8882
+  # - Hot reload enabled
+  ##############################################
+  lung_cancer_detection:
+    ports:
+      - "8882:8000"
+      # Map internal port 8000 → host port 8882 (dev only)
+    volumes:
+      - ./services/lung_cancer_detection:/app    # Mount source code for live editing
+    command: >
+      uvicorn entrypoint:app --host 0.0.0.0 --port 8000 --reload

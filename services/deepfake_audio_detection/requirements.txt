@@ -1,0 +1,6 @@
+loggerplusplus==1.0.1
+python-dotenv==1.1.1
+starlette==0.46.2
+uvicorn==0.35.0
+fastapi==0.115.14
+pyfiglet==1.0.4

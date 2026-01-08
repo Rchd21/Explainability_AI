@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard | Multi-App Tracker</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Cpath d='M16 44V28' stroke='%2360A5FA' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M28 44V20' stroke='%2334D399' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M40 44V32' stroke='%23F59E0B' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M52 44V24' stroke='%23A78BFA' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top App Tabs Bar -->
+        <div class="app-tabs-bar" id="app-tabs-bar">
+            <div class="app-tabs-container" id="app-tabs-container">
+                <!-- Dynamically generated app tabs -->
+            </div>
+            <div class="app-tabs-actions">
+                <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                    <span class="theme-icon">◐</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="app-main-wrapper">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo">
+                        <span class="logo-icon">◈</span>
+                        <span class="logo-text">Analytics</span>
+                    </div>
+                    <div class="current-app-badge" id="current-app-badge">
+                        <!-- Shows current app name -->
+                    </div>
+                </div>
+                
+                <nav class="nav-menu" id="nav-menu">
+                    <button class="nav-item active" data-view="dashboard">
+                        <span class="nav-icon">◉</span>
+                        <span class="nav-label">Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-view="clients">
+                        <span class="nav-icon">◎</span>
+                        <span class="nav-label">Clients</span>
+                    </button>
+                    <button class="nav-item" data-view="sessions">
+                        <span class="nav-icon">◐</span>
+                        <span class="nav-label">Sessions</span>
+                    </button>
+                    <button class="nav-item" data-view="searches">
+                        <span class="nav-icon">◑</span>
+                        <span class="nav-label">Searches</span>
+                    </button>
+                    <button class="nav-item" data-view="conversations">
+                        <span class="nav-icon">◒</span>
+                        <span class="nav-label">Conversations</span>
+                    </button>
+                    <button class="nav-item" data-view="feedback">
+                        <span class="nav-icon">◓</span>
+                        <span class="nav-label">Feedback</span>
+                    </button>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="refresh-control">
+                        <label class="refresh-label">Auto-refresh</label>
+                        <select id="refresh-interval" class="refresh-select">
+                            <option value="0">Off</option>
+                            <option value="30000">30s</option>
+                            <option value="60000">1 min</option>
+                            <option value="300000">5 min</option>
+                        </select>
+                    </div>
+                    <div class="last-update" id="last-update">
+                        <span class="update-dot"></span>
+                        <span class="update-text">--:--:--</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Header -->
+                <header class="header" id="header">
+                    <div class="header-left">
+                        <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                        <h1 class="page-title" id="page-title">Dashboard</h1>
+                    </div>
+                    <div class="header-right">
+                        <div class="period-selector" id="period-selector">
+                            <button class="period-btn" data-days="7">7d</button>
+                            <button class="period-btn active" data-days="30">30d</button>
+                            <button class="period-btn" data-days="90">90d</button>
+                            <button class="period-btn" data-days="365">1y</button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Views Container -->
+                <div class="views-container" id="views-container">
+                    <!-- ============================================================
+                         APP-SPECIFIC VIEWS (one set per app, generated dynamically)
+                         ============================================================ -->
+                    <div id="app-views-container">
+                        <!-- Will be populated by JavaScript for each app -->
+                    </div>
+
+                    <!-- ============================================================
+                         CROSS-APP VIEW (shared clients across all apps)
+                         ============================================================ -->
+                    <section class="view" id="cross-app-view">
+                        <div class="cross-app-header">
+                            <h2 class="cross-app-title">Cross-Application Analytics</h2>
+                            <p class="cross-app-subtitle">Track client activity across all applications</p>
+                        </div>
+
+                        <!-- Aggregated KPIs -->
+                        <div class="kpi-grid kpi-grid-cross" id="cross-app-kpi-grid">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Per-App Comparison -->
+                        <div class="cross-app-comparison">
+                            <div class="chart-card chart-large">
+                                <div class="chart-header">
+                                    <h3 class="chart-title">Activity Comparison Across Apps</h3>
+                                </div>
+                                <div class="chart-body">
+                                    <canvas id="cross-app-activity-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shared Clients -->
+                        <div class="cross-app-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Shared Clients</h3>
+                                <p class="section-subtitle">Clients who have used multiple applications</p>
+                            </div>
+                            <div class="view-header">
+                                <div class="filter-bar" id="cross-app-filters">
+                                    <div class="filter-group">
+                                        <input type="text" class="filter-input" id="cross-app-search" placeholder="Search by fingerprint...">
+                                    </div>
+                                    <button class="btn btn-secondary" id="cross-app-apply-filters">Apply</button>
+                                    <button class="btn btn-ghost" id="cross-app-reset-filters">Reset</button>
+                                </div>
+                            </div>
+                            <div class="table-container" id="cross-app-clients-table">
+                                <!-- DataTable rendered here -->
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Modal Title</h2>
+                <button class="modal-close" id="modal-close">×</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Modal content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Global Loader -->
+    <div class="global-loader" id="global-loader">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
