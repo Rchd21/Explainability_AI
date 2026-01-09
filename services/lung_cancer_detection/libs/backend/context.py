@@ -4,11 +4,10 @@ from loggerplusplus import LoggerPlusPlus
 # ====== Internal Project Imports ======
 from config import CONFIG
 
-from detector import FakeAudioDetector
-
+from detector.core import LungCancerDetector
 
 class CONTEXT:
     config: CONFIG
     logger: LoggerPlusPlus
 
-    detector: FakeAudioDetector
+    lung_detector: LungCancerDetector 

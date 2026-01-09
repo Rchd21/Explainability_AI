@@ -10,7 +10,7 @@ from typing import cast
 from config import CONFIG
 
 # Detector
-from detector import FakeAudioDetector
+from detector.core import LungCancerDetector  
 
 # Background & api context
 from backend import create_app, CONTEXT
@@ -30,8 +30,13 @@ def _build_app() -> FastAPI:
     # Create app context -> inject shared instance to the global shared context.
     CONTEXT.config = CONFIG
     CONTEXT.logger = loggerplusplus.bind(identifier="BACKEND")
-    #CONTEXT.detector = FakeAudioDetector(...)
-    # TODO: ici on instancie les classes
+
+    # Instancier le détecteur LUNG et l'injecter dans le CONTEXT
+    # On lui passe le logger du contexte pour que LoggerClass soit utile
+    CONTEXT.lung_detector = LungCancerDetector()
+
+    # (Optionnel) Audio : si vous en avez besoin dans ce service
+    # CONTEXT.detector = FakeAudioDetector(...)
 
     # Create the FastAPI application
     fastapi_app = create_app()
