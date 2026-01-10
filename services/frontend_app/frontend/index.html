@@ -3,195 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard | Multi-App Tracker</title>
+    <title>AI Detection Hub | Medical & Audio Analysis</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Cpath d='M16 44V28' stroke='%2360A5FA' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M28 44V20' stroke='%2334D399' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M40 44V32' stroke='%23F59E0B' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M52 44V24' stroke='%23A78BFA' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111827'/%3E%3Ccircle cx='32' cy='32' r='18' stroke='%2360A5FA' stroke-width='4' fill='none'/%3E%3Cpath d='M32 20v24M20 32h24' stroke='%2334D399' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="app">
-        <!-- Top App Tabs Bar -->
-        <div class="app-tabs-bar" id="app-tabs-bar">
-            <div class="app-tabs-container" id="app-tabs-container">
-                <!-- Dynamically generated app tabs -->
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="2.5"/>
+                        <path d="M20 10v20M10 20h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="20" cy="20" r="6" fill="currentColor" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>AI Detection Hub</h1>
+                    <span class="brand-tagline">Medical & Audio Analysis</span>
+                </div>
             </div>
-            <div class="app-tabs-actions">
+            <div class="header-actions">
                 <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-                    <span class="theme-icon">◐</span>
+                    <span class="theme-icon-light">☀️</span>
+                    <span class="theme-icon-dark">🌙</span>
                 </button>
             </div>
-        </div>
+        </header>
 
-        <div class="app-main-wrapper">
-            <!-- Sidebar Navigation -->
-            <aside class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <div class="logo">
-                        <span class="logo-icon">◈</span>
-                        <span class="logo-text">Analytics</span>
-                    </div>
-                    <div class="current-app-badge" id="current-app-badge">
-                        <!-- Shows current app name -->
-                    </div>
-                </div>
-                
-                <nav class="nav-menu" id="nav-menu">
-                    <button class="nav-item active" data-view="dashboard">
-                        <span class="nav-icon">◉</span>
-                        <span class="nav-label">Dashboard</span>
-                    </button>
-                    <button class="nav-item" data-view="clients">
-                        <span class="nav-icon">◎</span>
-                        <span class="nav-label">Clients</span>
-                    </button>
-                    <button class="nav-item" data-view="sessions">
-                        <span class="nav-icon">◐</span>
-                        <span class="nav-label">Sessions</span>
-                    </button>
-                    <button class="nav-item" data-view="searches">
-                        <span class="nav-icon">◑</span>
-                        <span class="nav-label">Searches</span>
-                    </button>
-                    <button class="nav-item" data-view="conversations">
-                        <span class="nav-icon">◒</span>
-                        <span class="nav-label">Conversations</span>
-                    </button>
-                    <button class="nav-item" data-view="feedback">
-                        <span class="nav-icon">◓</span>
-                        <span class="nav-label">Feedback</span>
-                    </button>
-                </nav>
-                
-                <div class="sidebar-footer">
-                    <div class="refresh-control">
-                        <label class="refresh-label">Auto-refresh</label>
-                        <select id="refresh-interval" class="refresh-select">
-                            <option value="0">Off</option>
-                            <option value="30000">30s</option>
-                            <option value="60000">1 min</option>
-                            <option value="300000">5 min</option>
-                        </select>
-                    </div>
-                    <div class="last-update" id="last-update">
-                        <span class="update-dot"></span>
-                        <span class="update-text">--:--:--</span>
+        <!-- Main Navigation Tabs -->
+        <nav class="detector-tabs" id="detector-tabs">
+            <button class="detector-tab active" data-detector="lung-cancer">
+                <span class="tab-icon">🫁</span>
+                <span class="tab-label">Lung Cancer Detection</span>
+                <span class="tab-badge">AI</span>
+            </button>
+            <button class="detector-tab" data-detector="audio-fake">
+                <span class="tab-icon">🎙️</span>
+                <span class="tab-label">Audio Fake Detection</span>
+                <span class="tab-badge coming-soon">Soon</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Lung Cancer Detection View -->
+            <section class="detector-view active" id="lung-cancer-view">
+                <div class="view-header">
+                    <div class="view-title-group">
+                        <h2 class="view-title">Lung Cancer Detection</h2>
+                        <p class="view-description">Upload a lung CT scan image for AI-powered cancer detection with explainability visualization</p>
                     </div>
                 </div>
-            </aside>
 
-            <!-- Main Content -->
-            <main class="main-content">
-                <!-- Header -->
-                <header class="header" id="header">
-                    <div class="header-left">
-                        <button class="mobile-menu-toggle" id="mobile-menu-toggle">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </button>
-                        <h1 class="page-title" id="page-title">Dashboard</h1>
-                    </div>
-                    <div class="header-right">
-                        <div class="period-selector" id="period-selector">
-                            <button class="period-btn" data-days="7">7d</button>
-                            <button class="period-btn active" data-days="30">30d</button>
-                            <button class="period-btn" data-days="90">90d</button>
-                            <button class="period-btn" data-days="365">1y</button>
-                        </div>
-                    </div>
-                </header>
-
-                <!-- Views Container -->
-                <div class="views-container" id="views-container">
-                    <!-- ============================================================
-                         APP-SPECIFIC VIEWS (one set per app, generated dynamically)
-                         ============================================================ -->
-                    <div id="app-views-container">
-                        <!-- Will be populated by JavaScript for each app -->
-                    </div>
-
-                    <!-- ============================================================
-                         CROSS-APP VIEW (shared clients across all apps)
-                         ============================================================ -->
-                    <section class="view" id="cross-app-view">
-                        <div class="cross-app-header">
-                            <h2 class="cross-app-title">Cross-Application Analytics</h2>
-                            <p class="cross-app-subtitle">Track client activity across all applications</p>
-                        </div>
-
-                        <!-- Aggregated KPIs -->
-                        <div class="kpi-grid kpi-grid-cross" id="cross-app-kpi-grid">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-
-                        <!-- Per-App Comparison -->
-                        <div class="cross-app-comparison">
-                            <div class="chart-card chart-large">
-                                <div class="chart-header">
-                                    <h3 class="chart-title">Activity Comparison Across Apps</h3>
-                                </div>
-                                <div class="chart-body">
-                                    <canvas id="cross-app-activity-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Shared Clients -->
-                        <div class="cross-app-section">
-                            <div class="section-header">
-                                <h3 class="section-title">Shared Clients</h3>
-                                <p class="section-subtitle">Clients who have used multiple applications</p>
-                            </div>
-                            <div class="view-header">
-                                <div class="filter-bar" id="cross-app-filters">
-                                    <div class="filter-group">
-                                        <input type="text" class="filter-input" id="cross-app-search" placeholder="Search by fingerprint...">
+                <div class="detector-layout">
+                    <!-- Upload Section -->
+                    <div class="upload-section">
+                        <div class="upload-card">
+                            <h3 class="card-title">
+                                <span class="card-icon">📤</span>
+                                Upload Image
+                            </h3>
+                            
+                            <div class="upload-zone" id="lung-upload-zone">
+                                <div class="upload-zone-content">
+                                    <div class="upload-icon">
+                                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M24 32V16M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M8 32v6a4 4 0 004 4h24a4 4 0 004-4v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                        </svg>
                                     </div>
-                                    <button class="btn btn-secondary" id="cross-app-apply-filters">Apply</button>
-                                    <button class="btn btn-ghost" id="cross-app-reset-filters">Reset</button>
+                                    <p class="upload-text">Drag & drop your CT scan image here</p>
+                                    <p class="upload-hint">or click to browse</p>
+                                    <p class="upload-formats">Supports: PNG, JPG, JPEG</p>
+                                </div>
+                                <input type="file" id="lung-file-input" accept="image/png,image/jpeg,image/jpg" hidden>
+                            </div>
+
+                            <!-- Image Preview -->
+                            <div class="image-preview" id="lung-image-preview">
+                                <img id="lung-preview-img" src="" alt="Upload preview">
+                                <button class="preview-remove" id="lung-preview-remove" title="Remove image">×</button>
+                                <div class="preview-filename" id="lung-preview-filename"></div>
+                            </div>
+
+                            <!-- XAI Method Selection -->
+                            <div class="xai-selection">
+                                <h4 class="selection-title">
+                                    <span class="selection-icon">🔬</span>
+                                    Explainability Method (XAI)
+                                </h4>
+                                <p class="selection-description">Choose how the AI explains its decision</p>
+                                
+                                <div class="xai-options" id="lung-xai-options">
+                                    <label class="xai-option">
+                                        <input type="radio" name="lung-xai-method" value="gradcam" checked>
+                                        <div class="xai-option-content">
+                                            <div class="xai-option-header">
+                                                <span class="xai-name">Grad-CAM</span>
+                                                <span class="xai-badge recommended">Recommended</span>
+                                            </div>
+                                            <p class="xai-description">Gradient-weighted Class Activation Mapping - Highlights important regions with a heatmap overlay</p>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="xai-option">
+                                        <input type="radio" name="lung-xai-method" value="lime">
+                                        <div class="xai-option-content">
+                                            <div class="xai-option-header">
+                                                <span class="xai-name">LIME</span>
+                                                <span class="xai-badge">Interpretable</span>
+                                            </div>
+                                            <p class="xai-description">Local Interpretable Model-agnostic Explanations - Shows superpixel importance</p>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
-                            <div class="table-container" id="cross-app-clients-table">
-                                <!-- DataTable rendered here -->
+
+                            <!-- Submit Button -->
+                            <button class="submit-btn" id="lung-submit-btn" disabled>
+                                <span class="btn-icon">🔍</span>
+                                <span class="btn-text">Analyze Image</span>
+                                <span class="btn-loader"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="results-section">
+                        <div class="results-card" id="lung-results-card">
+                            <!-- Empty State -->
+                            <div class="results-empty" id="lung-results-empty">
+                                <div class="empty-icon">
+                                    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="40" cy="40" r="30" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                                        <path d="M40 25v30M25 40h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+                                    </svg>
+                                </div>
+                                <h3>No Analysis Yet</h3>
+                                <p>Upload an image and select an XAI method to begin analysis</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div class="results-loading hidden" id="lung-results-loading">
+                                <div class="loading-spinner">
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                </div>
+                                <h3>Analyzing Image...</h3>
+                                <p class="loading-step" id="lung-loading-step">Processing with AI model</p>
+                            </div>
+
+                            <!-- Results Content -->
+                            <div class="results-content hidden" id="lung-results-content">
+                                <!-- Prediction Result -->
+                                <div class="result-prediction" id="lung-prediction">
+                                    <div class="prediction-icon" id="lung-prediction-icon">✓</div>
+                                    <div class="prediction-details">
+                                        <h3 class="prediction-label" id="lung-prediction-label">Prediction</h3>
+                                        <p class="prediction-value" id="lung-prediction-value">--</p>
+                                    </div>
+                                    <div class="prediction-confidence">
+                                        <span class="confidence-label">Score</span>
+                                        <span class="confidence-value" id="lung-confidence-value">--%</span>
+                                    </div>
+                                </div>
+
+                                <!-- XAI Visualization -->
+                                <div class="xai-visualization">
+                                    <h4 class="section-title">
+                                        <span class="section-icon">🎯</span>
+                                        Explainability Visualization
+                                    </h4>
+                                    <p class="section-description">
+                                        <span id="lung-xai-method-name">Grad-CAM</span> highlights the regions that influenced the AI's decision
+                                    </p>
+                                    <div class="xai-image-container">
+                                        <img id="lung-xai-image" src="" alt="XAI visualization">
+                                        <div class="xai-legend">
+                                            <span class="legend-item high">High importance</span>
+                                            <span class="legend-item medium">Medium</span>
+                                            <span class="legend-item low">Low importance</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Additional Info -->
+                                <div class="result-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Processing Time</span>
+                                        <span class="meta-value" id="lung-duration">--s</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">XAI Method</span>
+                                        <span class="meta-value" id="lung-xai-used">--</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </section>
+                    </div>
                 </div>
-            </main>
-        </div>
-    </div>
+            </section>
 
-    <!-- Modal Container -->
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal" id="modal">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modal-title">Modal Title</h2>
-                <button class="modal-close" id="modal-close">×</button>
-            </div>
-            <div class="modal-body" id="modal-body">
-                <!-- Modal content -->
-            </div>
-        </div>
+            <!-- Audio Fake Detection View (Coming Soon) -->
+            <section class="detector-view" id="audio-fake-view">
+                <div class="view-header">
+                    <div class="view-title-group">
+                        <h2 class="view-title">Audio Fake Detection</h2>
+                        <p class="view-description">Upload an audio file to detect AI-generated or manipulated speech</p>
+                    </div>
+                </div>
+
+                <div class="detector-layout">
+                    <!-- Upload Section -->
+                    <div class="upload-section">
+                        <div class="upload-card">
+                            <h3 class="card-title">
+                                <span class="card-icon">📤</span>
+                                Upload Audio
+                            </h3>
+                            
+                            <div class="upload-zone" id="audio-upload-zone">
+                                <div class="upload-zone-content">
+                                    <div class="upload-icon">
+                                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M24 32V16M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M8 32v6a4 4 0 004 4h24a4 4 0 004-4v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <p class="upload-text">Drag & drop your audio file here</p>
+                                    <p class="upload-hint">or click to browse</p>
+                                    <p class="upload-formats">Supports: WAV, MP3, FLAC, OGG</p>
+                                </div>
+                                <input type="file" id="audio-file-input" accept="audio/wav,audio/mp3,audio/mpeg,audio/flac,audio/ogg" hidden>
+                            </div>
+
+                            <!-- Audio Preview -->
+                            <div class="audio-preview hidden" id="audio-preview">
+                                <div class="audio-preview-info">
+                                    <span class="audio-icon">🎵</span>
+                                    <span class="audio-filename" id="audio-preview-filename"></span>
+                                    <button class="preview-remove" id="audio-preview-remove" title="Remove audio">×</button>
+                                </div>
+                                <audio controls id="audio-player" class="audio-player"></audio>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button class="submit-btn" id="audio-submit-btn" disabled>
+                                <span class="btn-icon">🔍</span>
+                                <span class="btn-text">Analyze Audio</span>
+                                <span class="btn-loader"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="results-section">
+                        <div class="results-card" id="audio-results-card">
+                            <!-- Empty State -->
+                            <div class="results-empty" id="audio-results-empty">
+                                <div class="empty-icon">
+                                    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="40" cy="40" r="30" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                                        <path d="M40 25v30M25 40h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+                                    </svg>
+                                </div>
+                                <h3>No Analysis Yet</h3>
+                                <p>Upload an audio file to begin fake detection analysis</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div class="results-loading hidden" id="audio-results-loading">
+                                <div class="loading-spinner">
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                </div>
+                                <h3>Analyzing Audio...</h3>
+                                <p class="loading-step" id="audio-loading-step">Processing audio signal</p>
+                            </div>
+
+                            <!-- Results Content -->
+                            <div class="results-content hidden" id="audio-results-content">
+                                <!-- Prediction Result -->
+                                <div class="result-prediction" id="audio-prediction">
+                                    <div class="prediction-icon" id="audio-prediction-icon">✓</div>
+                                    <div class="prediction-details">
+                                        <h3 class="prediction-label" id="audio-prediction-label">Prediction</h3>
+                                        <p class="prediction-value" id="audio-prediction-value">--</p>
+                                    </div>
+                                    <div class="prediction-confidence">
+                                        <span class="confidence-label">Confidence</span>
+                                        <span class="confidence-value" id="audio-confidence-value">--%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Spectrogram Visualization -->
+                                <div class="spectrogram-visualization">
+                                    <h4 class="section-title">
+                                        <span class="section-icon">📊</span>
+                                        Audio Analysis
+                                    </h4>
+                                    <p class="section-description">Spectrogram and anomaly detection visualization</p>
+                                    <div class="spectrogram-container">
+                                        <img id="audio-spectrogram" src="" alt="Audio spectrogram">
+                                    </div>
+                                </div>
+
+                                <!-- Additional Info -->
+                                <div class="result-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Processing Time</span>
+                                        <span class="meta-value" id="audio-duration">--s</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Audio Length</span>
+                                        <span class="meta-value" id="audio-length">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2025 AI Detection Hub. All rights reserved.</p>
+            <p class="footer-disclaimer">This tool is for educational and research purposes only. Always consult healthcare professionals for medical decisions.</p>
+        </footer>
     </div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
-
-    <!-- Global Loader -->
-    <div class="global-loader" id="global-loader">
-        <div class="loader-spinner"></div>
-    </div>
 
     <!-- Scripts -->
     <script type="module" src="js/app.js"></script>

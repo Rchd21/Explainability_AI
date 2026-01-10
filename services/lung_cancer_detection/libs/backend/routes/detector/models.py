@@ -1,18 +1,58 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+# ====== Code Summary ======
+# This module defines the request and response models for the lung cancer detection
+# API endpoint, including support for form-based parsing and structured output.
 
-# TODO: ici on définit les modèles qui définissent les entrées sorties des endpoints associé ici à /health (nom du dossier)
+# ====== Standard Library Imports ======
+from __future__ import annotations
 
-# ---- Lung ----
+# ====== Third-Party Library Imports ======
+from pydantic import BaseModel, Field
+from fastapi import Form
+
+# ====== Internal Project Imports ======
+from public_models.detector import XaiMethod, DetectorResult
+
+
 class LungCancerDetectionRequest(BaseModel):
-    # Quelles méthodes XAI appliquer
-    xai_methods: List[str] = ["gradcam","lime"]  # ex: ["gradcam","lime"]
-    # Label à expliquer (doit exister dans model.pathologies)
-    target_label: str = "Lung Lesion"
-    # Seuil proxy cancer
-    threshold: float = 0.5
+    """
+    Request model for lung cancer detection API.
+
+    Attributes:
+        xai_method (XaiMethod): The selected explainability method.
+    """
+
+    xai_method: XaiMethod = Field(..., description="XAI method to use")
+
+    @classmethod
+    def as_form(
+            cls,
+            xai_method: XaiMethod = Form(...),
+    ) -> LungCancerDetectionRequest:
+        """
+        Support FastAPI dependency injection for `application/x-www-form-urlencoded`.
+
+        Args:
+            xai_method (XaiMethod): XAI method submitted via form.
+
+        Returns:
+            LungCancerDetectionRequest: Parsed request model.
+        """
+        return cls(xai_method=xai_method)
 
 
 class LungCancerDetectionResponse(BaseModel):
-    prediction: Dict[str, Any]
-    xai: Dict[str, Any]
+    """
+    Response model for lung cancer detection API.
+
+    Attributes:
+        detector_result: Structured detection result (prediction, method, etc.)
+        duration: Total processing time in seconds
+        xai_image_base64: PNG-encoded explanation image (base64 string, no data-uri prefix)
+    """
+    detector_result: DetectorResult
+    duration: float
+    xai_image_base64: str = Field(
+        ...,
+        description="PNG image encoded in base64 (use 'data:image/png;base64,' + value to display)",
+        min_length=1,
+    )

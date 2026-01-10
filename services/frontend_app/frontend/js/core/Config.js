@@ -1,182 +1,137 @@
 /**
  * Config.js
  * 
- * Application configuration settings.
- * Contains API URLs, PFS apps list, default values, and other configurable options.
+ * Application configuration and constants.
+ * Defines API endpoints for different detection services.
  */
 
 class Config {
     constructor() {
-        // =======================================================================
-        // PFS APPS CONFIGURATION - MODIFY THIS LIST TO ADD/REMOVE APPS
-        // =======================================================================
-        this._pfsApps = [
-            { id: 'pfs_explorer_numerique', name: 'PFS Numérique', color: '#6366f1' },
-            { id: 'pfs_explorer_transports_et_mobilite', name: 'PFS Transports & Mobilité', color: '#22d3ee' },
-            { id: 'pfs_explorer_evaluation_et_apprentissage', name: 'PFS Evaluation et Apprentissage', color: '#a855f7' },
+        // API Endpoints for different detectors
+        this._endpoints = {
+            lungCancer: {
+                baseUrl: 'http://localhost:8882',
+                detectPath: '/detector/lung_cancer_detection'
+            },
+            audioFake: {
+                baseUrl: 'http://fake_audio_detector:8000',
+                detectPath: '/detector/fake_audio_detection'
+            }
+        };
+
+        // Available XAI methods for lung cancer detection
+        this._xaiMethods = [
+            {
+                value: 'gradcam',
+                name: 'Grad-CAM',
+                description: 'Gradient-weighted Class Activation Mapping - Highlights important regions with a heatmap overlay',
+                badge: 'Recommended',
+                recommended: true
+            },
+            {
+                value: 'lime',
+                name: 'LIME',
+                description: 'Local Interpretable Model-agnostic Explanations - Shows superpixel importance',
+                badge: 'Interpretable',
+                recommended: false
+            }
         ];
-        
-        // API Base URL pattern: /pfs/{app_id}/tracking
-        this._apiBasePattern = '/pfs/{app_id}/tracking';
-        
-        // Default pagination
-        this._defaultPageSize = 50;
-        this._maxPageSize = 200;
-        
-        // Default time period in days
-        this._defaultPeriod = 30;
-        
-        // Auto-refresh intervals (in milliseconds)
-        this._refreshIntervals = {
-            off: 0,
-            fast: 30000,    // 30 seconds
-            normal: 60000,  // 1 minute
-            slow: 300000    // 5 minutes
+
+        // Supported file types
+        this._supportedFiles = {
+            lungCancer: {
+                accept: 'image/png,image/jpeg,image/jpg',
+                extensions: ['.png', '.jpg', '.jpeg'],
+                maxSize: 10 * 1024 * 1024 // 10MB
+            },
+            audioFake: {
+                accept: 'audio/wav,audio/mp3,audio/mpeg,audio/flac,audio/ogg',
+                extensions: ['.wav', '.mp3', '.flac', '.ogg'],
+                maxSize: 50 * 1024 * 1024 // 50MB
+            }
         };
-        
-        // Chart colors palette for multiple apps
-        this._appColors = [
-            '#6366f1',  // Indigo
-            '#22d3ee',  // Cyan
-            '#a855f7',  // Purple
-            '#22c55e',  // Green
-            '#f59e0b',  // Amber
-            '#ef4444',  // Red
-            '#ec4899',  // Pink
-            '#14b8a6',  // Teal
-            '#f97316',  // Orange
-            '#8b5cf6',  // Violet
-        ];
-        
-        // Chart colors
-        this._chartColors = {
-            primary: '#6366f1',
-            secondary: '#22d3ee',
-            tertiary: '#a855f7',
-            success: '#22c55e',
-            warning: '#f59e0b',
-            error: '#ef4444',
-            sessions: '#6366f1',
-            searches: '#22d3ee',
-            conversations: '#a855f7',
-            newClients: '#22c55e'
+
+        // Application settings
+        this._settings = {
+            toastDuration: 5000,
+            requestTimeout: 60000 // 60 seconds for model inference
         };
+    }
+
+    /**
+     * Get the full API URL for lung cancer detection
+     * @returns {string} Full API URL
+     */
+    get lungCancerApiUrl() {
+        const { baseUrl, detectPath } = this._endpoints.lungCancer;
+        return `${baseUrl}${detectPath}`;
+    }
+
+    /**
+     * Get the full API URL for audio fake detection
+     * @returns {string} Full API URL
+     */
+    get audioFakeApiUrl() {
+        const { baseUrl, detectPath } = this._endpoints.audioFake;
+        return `${baseUrl}${detectPath}`;
+    }
+
+    /**
+     * Get available XAI methods
+     * @returns {Array} XAI methods configuration
+     */
+    get xaiMethods() {
+        return this._xaiMethods;
+    }
+
+    /**
+     * Get supported file configuration
+     * @param {string} detector - Detector type ('lungCancer' or 'audioFake')
+     * @returns {Object} File configuration
+     */
+    getSupportedFiles(detector) {
+        return this._supportedFiles[detector] || null;
+    }
+
+    /**
+     * Get application settings
+     * @returns {Object} Settings object
+     */
+    get settings() {
+        return this._settings;
+    }
+
+    /**
+     * Validate file for a specific detector
+     * @param {File} file - File to validate
+     * @param {string} detector - Detector type
+     * @returns {Object} Validation result { valid: boolean, error?: string }
+     */
+    validateFile(file, detector) {
+        const config = this._supportedFiles[detector];
         
-        // Rating colors for stars
-        this._ratingColors = {
-            1: '#ef4444',
-            2: '#f59e0b',
-            3: '#f59e0b',
-            4: '#22c55e',
-            5: '#22c55e'
-        };
+        if (!config) {
+            return { valid: false, error: 'Unknown detector type' };
+        }
+
+        // Check file size
+        if (file.size > config.maxSize) {
+            const maxMB = config.maxSize / (1024 * 1024);
+            return { valid: false, error: `File size exceeds ${maxMB}MB limit` };
+        }
+
+        // Check file extension
+        const fileName = file.name.toLowerCase();
+        const hasValidExtension = config.extensions.some(ext => fileName.endsWith(ext));
         
-        // Date format options
-        this._dateFormatOptions = {
-            short: { day: '2-digit', month: '2-digit', year: 'numeric' },
-            medium: { day: '2-digit', month: 'short', year: 'numeric' },
-            long: { day: '2-digit', month: 'long', year: 'numeric' },
-            time: { hour: '2-digit', minute: '2-digit' },
-            full: { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }
-        };
-        
-        // Locale for formatting
-        this._locale = 'en-US';
-    }
-    
-    // =========================================================================
-    // PFS Apps Getters
-    // =========================================================================
-    
-    get pfsApps() {
-        return this._pfsApps;
-    }
-    
-    get appColors() {
-        return this._appColors;
-    }
-    
-    /**
-     * Get API base URL for a specific PFS app
-     * @param {string} appId - PFS app identifier
-     * @returns {string} API base URL
-     */
-    getApiBaseUrl(appId) {
-        return this._apiBasePattern.replace('{app_id}', appId);
-    }
-    
-    /**
-     * Get app configuration by ID
-     * @param {string} appId - PFS app identifier
-     * @returns {Object|null} App configuration
-     */
-    getAppById(appId) {
-        return this._pfsApps.find(app => app.id === appId) || null;
-    }
-    
-    /**
-     * Get color for an app by index
-     * @param {number} index - App index
-     * @returns {string} Color hex code
-     */
-    getAppColor(index) {
-        return this._appColors[index % this._appColors.length];
-    }
-    
-    /**
-     * Set PFS apps configuration
-     * @param {Array} apps - Array of app configurations
-     */
-    setPfsApps(apps) {
-        this._pfsApps = apps.map((app, index) => ({
-            ...app,
-            color: app.color || this.getAppColor(index)
-        }));
-    }
-    
-    // =========================================================================
-    // Standard Getters
-    // =========================================================================
-    
-    get defaultPageSize() {
-        return this._defaultPageSize;
-    }
-    
-    get maxPageSize() {
-        return this._maxPageSize;
-    }
-    
-    get defaultPeriod() {
-        return this._defaultPeriod;
-    }
-    
-    get refreshIntervals() {
-        return this._refreshIntervals;
-    }
-    
-    get chartColors() {
-        return this._chartColors;
-    }
-    
-    get ratingColors() {
-        return this._ratingColors;
-    }
-    
-    get dateFormatOptions() {
-        return this._dateFormatOptions;
-    }
-    
-    get locale() {
-        return this._locale;
-    }
-    
-    // Setters
-    setApiBasePattern(pattern) {
-        this._apiBasePattern = pattern;
-    }
-    
-    setLocale(locale) {
-        this._locale = locale;
+        if (!hasValidExtension) {
+            return { 
+                valid: false, 
+                error: `Invalid file type. Supported: ${config.extensions.join(', ')}` 
+            };
+        }
+
+        return { valid: true };
     }
 }
 

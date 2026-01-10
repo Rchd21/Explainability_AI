@@ -1,37 +1,76 @@
 from loggerplusplus import LoggerClass
 
-from .lung_detection import LungDetectorModel
-from .lung_explainability import gradcam_heatmap, lime_overlay
+import numpy as np
+
+from .xai import XaiLime, XaiGradCAM
+from .model import LungDetectorModel
+from public_models.detector import XaiMethod, DetectorResult, LungPrediction
 
 
 class LungCancerDetector(LoggerClass):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    target_label: str = "Lung Lesion"
 
-        # Chargement modèle une seule fois au démarrage du service
-        self.detector_model = LungDetectorModel(
-            weights="densenet121-res224-chex",
-            threshold=0.5,
-            cancer_keys=["Lung Lesion"]
+    def __init__(self, model: LungDetectorModel):
+        super().__init__()
+        self._model: LungDetectorModel = model
+
+        self.logger.info("[LUNG_DETECTOR] Initialized")
+
+    def load_model(self) -> None:
+        self.logger.info("[LUNG_DETECTOR] Loading model")
+        self._model.load_model()
+        self.logger.info("[LUNG_DETECTOR] Model loaded")
+
+    def detect(self, image_path: str, xai_method: XaiMethod) -> DetectorResult:
+        self.logger.info(
+            f"[LUNG_DETECTOR] Detection started | "
+            f"xai_method={xai_method} | "
+            f"image_path={image_path}"
         )
 
-    def detect(self, image_path: str, xai_methods: list[str], target_label: str = "Lung Lesion") -> dict:
-        # 1) Preprocess + prédiction
-        x = self.detector_model.preprocess(image_path)
-        pred = self.detector_model.predict(x)
+        # 1) Preprocess
+        self.logger.debug("[LUNG_DETECTOR] Preprocessing image")
+        x, explain_image_base = self._model.preprocess(image_path)
 
-        result = {
-            "prediction": pred.__dict__,
-            "xai": {}
-        }
+        # 2) Prediction
+        self.logger.debug("[LUNG_DETECTOR] Running prediction")
+        prediction: LungPrediction = self._model.predict(x)
 
-        # 2) XAI (filtrage par méthode demandée)
-        if "gradcam" in xai_methods:
-            cam = gradcam_heatmap(self.detector_model.model, x, target_label)
-            result["xai"]["gradcam"] = cam.tolist()
+        self.logger.info(
+            f"[LUNG_DETECTOR] Prediction completed | "
+            f"score={prediction.score}"
+        )
 
-        if "lime" in xai_methods:
-            overlay = lime_overlay(self.detector_model.model, x, target_label, num_samples=1000)
-            result["xai"]["lime_overlay"] = overlay.tolist()
+        # 3) XAI
+        self.logger.debug(
+            f"[LUNG_DETECTOR] Running XAI | method={xai_method}"
+        )
 
-        return result
+        if xai_method == XaiMethod.GRADCAM:
+            explainer = XaiGradCAM(model=self._model.model)
+
+        elif xai_method == XaiMethod.LIME:
+            explainer = XaiLime(model=self._model.model)
+
+        else:
+            self.logger.error(
+                f"[LUNG_DETECTOR] Unknown XAI method: {xai_method}"
+            )
+            raise ValueError(f"Unknown XAI method: {xai_method}")
+
+        xai_explain: np.ndarray = explainer.explain(
+            x=x,
+            target_label=self.target_label,
+            base_image=explain_image_base
+        )
+
+        self.logger.info(
+            f"[LUNG_DETECTOR] XAI completed | "
+            f"method={xai_method}"
+        )
+
+        return DetectorResult(
+            xai_method=xai_method,
+            xai_explain=xai_explain.tolist(),
+            lung_prediction=prediction,
+        )

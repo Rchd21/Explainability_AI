@@ -1,16 +1,15 @@
 /**
  * EventBus.js
  * 
- * Simple event bus for inter-component communication.
- * Implements the publish-subscribe pattern for decoupled messaging.
+ * Simple pub/sub event system for decoupled communication
+ * between application components.
  */
 
 class EventBus {
     constructor() {
-        this._events = new Map();
-        this._onceEvents = new Map();
+        this._listeners = new Map();
     }
-    
+
     /**
      * Subscribe to an event
      * @param {string} event - Event name
@@ -18,152 +17,97 @@ class EventBus {
      * @returns {Function} Unsubscribe function
      */
     on(event, callback) {
-        if (typeof callback !== 'function') {
-            console.error('[EventBus] Callback must be a function');
-            return () => {};
+        if (!this._listeners.has(event)) {
+            this._listeners.set(event, new Set());
         }
         
-        if (!this._events.has(event)) {
-            this._events.set(event, []);
-        }
-        
-        this._events.get(event).push(callback);
+        this._listeners.get(event).add(callback);
         
         // Return unsubscribe function
         return () => this.off(event, callback);
     }
-    
+
     /**
-     * Subscribe to an event once
+     * Subscribe to an event (one-time)
      * @param {string} event - Event name
      * @param {Function} callback - Callback function
      */
     once(event, callback) {
-        if (typeof callback !== 'function') {
-            console.error('[EventBus] Callback must be a function');
-            return;
-        }
-        
-        if (!this._onceEvents.has(event)) {
-            this._onceEvents.set(event, []);
-        }
-        
-        this._onceEvents.get(event).push(callback);
+        const wrapper = (data) => {
+            this.off(event, wrapper);
+            callback(data);
+        };
+        this.on(event, wrapper);
     }
-    
-    /**
-     * Emit an event
-     * @param {string} event - Event name
-     * @param {*} data - Data to pass to callbacks
-     */
-    emit(event, data) {
-        // Regular subscribers
-        if (this._events.has(event)) {
-            this._events.get(event).forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error(`[EventBus] Error in callback for event "${event}":`, error);
-                }
-            });
-        }
-        
-        // One-time subscribers
-        if (this._onceEvents.has(event)) {
-            const callbacks = this._onceEvents.get(event);
-            this._onceEvents.delete(event);
-            
-            callbacks.forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error(`[EventBus] Error in once callback for event "${event}":`, error);
-                }
-            });
-        }
-    }
-    
+
     /**
      * Unsubscribe from an event
      * @param {string} event - Event name
-     * @param {Function} callback - Callback to remove
+     * @param {Function} callback - Callback function
      */
     off(event, callback) {
-        if (this._events.has(event)) {
-            const callbacks = this._events.get(event).filter(cb => cb !== callback);
-            
-            if (callbacks.length > 0) {
-                this._events.set(event, callbacks);
-            } else {
-                this._events.delete(event);
-            }
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+            listeners.delete(callback);
         }
     }
-    
+
     /**
-     * Remove all listeners for an event
-     * @param {string} event - Event name (optional, removes all if not provided)
+     * Emit an event
+     * @param {string} event - Event name
+     * @param {*} data - Event data
+     */
+    emit(event, data) {
+        const listeners = this._listeners.get(event);
+        if (listeners) {
+            listeners.forEach(callback => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error(`[EventBus] Error in listener for "${event}":`, error);
+                }
+            });
+        }
+    }
+
+    /**
+     * Clear all listeners for an event
+     * @param {string} event - Event name (optional, clears all if not provided)
      */
     clear(event) {
         if (event) {
-            this._events.delete(event);
-            this._onceEvents.delete(event);
+            this._listeners.delete(event);
         } else {
-            this._events.clear();
-            this._onceEvents.clear();
+            this._listeners.clear();
         }
-    }
-    
-    /**
-     * Get subscriber count for an event
-     * @param {string} event - Event name
-     * @returns {number} Number of subscribers
-     */
-    listenerCount(event) {
-        let count = 0;
-        
-        if (this._events.has(event)) {
-            count += this._events.get(event).length;
-        }
-        
-        if (this._onceEvents.has(event)) {
-            count += this._onceEvents.get(event).length;
-        }
-        
-        return count;
     }
 }
 
-// Event name constants
+// Event constants
 export const Events = {
-    // Navigation
-    VIEW_CHANGED: 'view:changed',
-    PERIOD_CHANGED: 'period:changed',
-    APP_TAB_CHANGED: 'app:tab:changed',
+    // Navigation events
+    DETECTOR_CHANGED: 'detector:changed',
     
-    // Data loading
-    DATA_LOADING: 'data:loading',
-    DATA_LOADED: 'data:loaded',
-    DATA_ERROR: 'data:error',
-    
-    // Filters
-    FILTERS_CHANGED: 'filters:changed',
-    FILTERS_RESET: 'filters:reset',
-    
-    // Selection
-    CLIENT_SELECTED: 'client:selected',
-    SESSION_SELECTED: 'session:selected',
-    CONVERSATION_SELECTED: 'conversation:selected',
-    
-    // UI
-    MODAL_OPEN: 'modal:open',
-    MODAL_CLOSE: 'modal:close',
-    TOAST_SHOW: 'toast:show',
+    // Theme events
     THEME_CHANGED: 'theme:changed',
     
-    // Refresh
-    REFRESH_TRIGGERED: 'refresh:triggered',
-    REFRESH_COMPLETE: 'refresh:complete'
+    // Lung cancer detector events
+    LUNG_FILE_SELECTED: 'lung:file:selected',
+    LUNG_FILE_REMOVED: 'lung:file:removed',
+    LUNG_XAI_CHANGED: 'lung:xai:changed',
+    LUNG_ANALYSIS_START: 'lung:analysis:start',
+    LUNG_ANALYSIS_SUCCESS: 'lung:analysis:success',
+    LUNG_ANALYSIS_ERROR: 'lung:analysis:error',
+    
+    // Audio detector events
+    AUDIO_FILE_SELECTED: 'audio:file:selected',
+    AUDIO_FILE_REMOVED: 'audio:file:removed',
+    AUDIO_ANALYSIS_START: 'audio:analysis:start',
+    AUDIO_ANALYSIS_SUCCESS: 'audio:analysis:success',
+    AUDIO_ANALYSIS_ERROR: 'audio:analysis:error',
+    
+    // Toast events
+    TOAST_SHOW: 'toast:show'
 };
 
 export const eventBus = new EventBus();

@@ -1,4 +1,7 @@
+from .core import LungCancerDetector
+from .model import LungDetectorModel
 
-from .core import LungCancerDetector  # ton detector lung
-
-__all__ = ["FakeAudioDetector", "LungCancerDetector"]
+__all__ = [
+    "LungCancerDetector",
+    "LungDetectorModel"
+]

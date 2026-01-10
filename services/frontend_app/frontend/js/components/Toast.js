@@ -1,138 +1,129 @@
 /**
  * Toast.js
  * 
- * Toast notification component for displaying feedback messages.
+ * Toast notification component for displaying
+ * success, error, warning, and info messages.
  */
 
-import { eventBus, Events } from '../core/index.js';
+import { config } from '../core/Config.js';
+import { eventBus, Events } from '../core/EventBus.js';
 
 class Toast {
     constructor() {
         this._container = null;
-        this._isInitialized = false;
-        this._defaultDuration = 4000;
+        this._toasts = new Map();
+        this._idCounter = 0;
     }
-    
+
     /**
-     * Initialize toast component
+     * Initialize the toast system
      */
     initialize() {
-        if (this._isInitialized) return;
-        
         this._container = document.getElementById('toast-container');
-        this._setupEventListeners();
-        this._isInitialized = true;
-    }
-    
-    /**
-     * Set up event listeners
-     */
-    _setupEventListeners() {
-        eventBus.on(Events.TOAST_SHOW, (options) => this.show(options));
         
-        // Show toast on errors
-        eventBus.on(Events.DATA_ERROR, ({ error }) => {
-            this.error(`Error: ${error}`);
+        // Listen for toast events
+        eventBus.on(Events.TOAST_SHOW, ({ type, title, message }) => {
+            this.show(type, title, message);
         });
+        
+        console.log('[Toast] Initialized');
     }
-    
+
     /**
      * Show a toast notification
-     * @param {Object} options - Toast options
+     * @param {string} type - Toast type ('success', 'error', 'warning', 'info')
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     * @returns {number} Toast ID
      */
-    show(options = {}) {
-        const {
-            message = '',
-            type = 'info',
-            duration = this._defaultDuration
-        } = options;
+    show(type, title, message) {
+        const id = ++this._idCounter;
         
-        if (!this._container || !message) return;
-        
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <span class="toast-icon">${this._getIcon(type)}</span>
-            <span class="toast-message">${message}</span>
-        `;
-        
-        this._container.appendChild(toast);
-        
-        // Auto-remove after duration
-        if (duration > 0) {
-            setTimeout(() => {
-                this._remove(toast);
-            }, duration);
-        }
-        
-        return toast;
-    }
-    
-    /**
-     * Show success toast
-     * @param {string} message - Message to display
-     */
-    success(message) {
-        return this.show({ message, type: 'success' });
-    }
-    
-    /**
-     * Show error toast
-     * @param {string} message - Message to display
-     */
-    error(message) {
-        return this.show({ message, type: 'error', duration: 6000 });
-    }
-    
-    /**
-     * Show info toast
-     * @param {string} message - Message to display
-     */
-    info(message) {
-        return this.show({ message, type: 'info' });
-    }
-    
-    /**
-     * Show warning toast
-     * @param {string} message - Message to display
-     */
-    warning(message) {
-        return this.show({ message, type: 'warning' });
-    }
-    
-    /**
-     * Get icon for toast type
-     * @param {string} type - Toast type
-     * @returns {string} Icon character
-     */
-    _getIcon(type) {
         const icons = {
             success: '✓',
             error: '✕',
-            info: 'ℹ',
-            warning: '⚠'
+            warning: '⚠',
+            info: 'ℹ'
         };
-        return icons[type] || icons.info;
-    }
-    
-    /**
-     * Remove a toast element
-     * @param {HTMLElement} toast - Toast element
-     */
-    _remove(toast) {
-        toast.style.animation = 'slideOut 0.3s ease forwards';
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.dataset.toastId = id;
+        
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || icons.info}</span>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" aria-label="Close">×</button>
+        `;
+
+        // Add close handler
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            this.dismiss(id);
+        });
+
+        this._container.appendChild(toast);
+        this._toasts.set(id, toast);
+
+        // Auto-dismiss after duration
         setTimeout(() => {
-            toast.remove();
-        }, 300);
+            this.dismiss(id);
+        }, config.settings.toastDuration);
+
+        return id;
     }
-    
+
     /**
-     * Clear all toasts
+     * Dismiss a toast
+     * @param {number} id - Toast ID
      */
-    clear() {
-        if (this._container) {
-            this._container.innerHTML = '';
+    dismiss(id) {
+        const toast = this._toasts.get(id);
+        if (toast) {
+            toast.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => {
+                toast.remove();
+                this._toasts.delete(id);
+            }, 300);
         }
+    }
+
+    /**
+     * Show success toast
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    success(title, message = '') {
+        return this.show('success', title, message);
+    }
+
+    /**
+     * Show error toast
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    error(title, message = '') {
+        return this.show('error', title, message);
+    }
+
+    /**
+     * Show warning toast
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    warning(title, message = '') {
+        return this.show('warning', title, message);
+    }
+
+    /**
+     * Show info toast
+     * @param {string} title - Toast title
+     * @param {string} message - Toast message
+     */
+    info(title, message = '') {
+        return this.show('info', title, message);
     }
 }
 

@@ -37,6 +37,10 @@ class CONFIG(metaclass=ConfigMeta):
     ENABLE_CONSOLE = env("ENABLE_CONSOLE", cast=bool)
     ENABLE_FILE = env("ENABLE_FILE", cast=bool)
 
+    # ───── Detector ─────
+    DETECTOR_MODEL_WEIGHTS = env("DETECTOR_MODEL_WEIGHTS")
+    DETECTOR_MODEL_THRESHOLD = env("DETECTOR_MODEL_THRESHOLD", cast=float)
+
     # ───── Built-in functions ─────
     # Instance-level string uses the class pretty repr
     def __repr__(self) -> str:

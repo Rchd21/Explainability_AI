@@ -1,8 +1,6 @@
 /**
- * Services Module Index
- * 
- * Exports all service modules for easy importing.
+ * Services module exports
  */
 
-export { analyticsService } from './AnalyticsService.js';
-export { exportService } from './ExportService.js';
+export { lungCancerService } from './LungCancerService.js';
+export { audioFakeService } from './AudioFakeService.js';

@@ -10,4 +10,4 @@ class CONTEXT:
     config: CONFIG
     logger: LoggerPlusPlus
 
-    lung_detector: LungCancerDetector 
+    detector: LungCancerDetector

@@ -48,18 +48,22 @@ def lifespan():
             CONTEXT.logger.info(f"🚀 Starting FastAPI-APP [{CONTEXT.config.FASTAPI_APP_NAME}]\n")
 
             # ─────────────────────────────────────────────
-            # [1/?] Runtime configuration
+            # [1/3] Runtime configuration
             # ─────────────────────────────────────────────
-            log_step(1, 4, "Loading runtime configuration")
+            log_step(1, 3, "Loading runtime configuration")
             CONTEXT.logger.info(CONTEXT.config)
             CONTEXT.logger.info("✔ Runtime configuration loaded")
 
-            # TODO: ajouter ici d'autres étapes de chargement de l'app si besoin
+            # ─────────────────────────────────────────────
+            # [2/3] Model loading
+            # ─────────────────────────────────────────────
+            log_step(2, 3, "Loading detector model")
+            CONTEXT.detector.load_model()
 
             # ─────────────────────────────────────────────
-            # [?/?] Ready
+            # [3/3] Ready
             # ─────────────────────────────────────────────
-            log_step(4, 4, "Finalizing startup")
+            log_step(3, 3, "Finalizing startup")
             CONTEXT.logger.info(f"✅ FastAPI-APP [{CONTEXT.config.FASTAPI_APP_NAME}] is ready!")
 
             yield
