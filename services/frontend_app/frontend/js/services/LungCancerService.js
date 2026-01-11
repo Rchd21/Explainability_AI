@@ -2,14 +2,16 @@
  * LungCancerService.js
  * 
  * Service for communicating with the lung cancer detection API.
- * Handles image upload and result parsing.
+ * Uses ApiService for proxy-based routing through Nginx.
  */
 
 import { config } from '../core/Config.js';
+import { apiService } from '../core/ApiService.js';
 
 class LungCancerService {
     constructor() {
         this._abortController = null;
+        this._detectorKey = 'lungCancer';
     }
 
     /**
@@ -30,19 +32,16 @@ class LungCancerService {
         formData.append('file', file);
         formData.append('xai_method', xaiMethod);
 
+        const detector = config.getDetector(this._detectorKey);
+
         try {
-            const response = await fetch(config.lungCancerApiUrl, {
-                method: 'POST',
-                body: formData,
-                signal: this._abortController.signal
-            });
+            const result = await apiService.postToDetector(
+                this._detectorKey,
+                detector.detectPath,
+                formData,
+                { signal: this._abortController.signal }
+            );
 
-            if (!response.ok) {
-                const error = await this._parseError(response);
-                throw new Error(error);
-            }
-
-            const result = await response.json();
             return this._parseResult(result);
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -51,20 +50,6 @@ class LungCancerService {
             throw error;
         } finally {
             this._abortController = null;
-        }
-    }
-
-    /**
-     * Parse API error response
-     * @param {Response} response - Fetch response
-     * @returns {Promise<string>} Error message
-     */
-    async _parseError(response) {
-        try {
-            const data = await response.json();
-            return data.detail || data.message || `HTTP ${response.status}: ${response.statusText}`;
-        } catch {
-            return `HTTP ${response.status}: ${response.statusText}`;
         }
     }
 

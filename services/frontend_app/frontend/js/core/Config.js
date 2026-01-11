@@ -2,20 +2,31 @@
  * Config.js
  * 
  * Application configuration and constants.
- * Defines API endpoints for different detection services.
+ * Defines API endpoints using proxy-based routing through Nginx.
+ * 
+ * All API calls go through the Nginx reverse proxy:
+ * /detectors_backend/<service_name>/<path> -> http://<service_name>:8000/<path>
  */
 
 class Config {
     constructor() {
-        // API Endpoints for different detectors
-        this._endpoints = {
+        // Proxy base path for all detector services
+        this._proxyBasePath = '/detectors_backend';
+
+        // Detector services configuration
+        // Each service is accessible via: /detectors_backend/<serviceName>/<endpoint>
+        this._detectors = {
             lungCancer: {
-                baseUrl: 'http://localhost:8882',
-                detectPath: '/detector/lung_cancer_detection'
+                serviceName: 'lung_cancer_detection',
+                displayName: 'Lung Cancer Detection',
+                detectPath: '/detector/lung_cancer_detection',
+                pingPath: '/health/ping'
             },
             audioFake: {
-                baseUrl: 'http://fake_audio_detector:8000',
-                detectPath: '/detector/fake_audio_detection'
+                serviceName: 'deepfake_audio_detection',
+                displayName: 'Deepfake Audio Detection',
+                detectPath: '/detector/fake_audio_detection',
+                pingPath: '/health/ping'
             }
         };
 
@@ -54,26 +65,89 @@ class Config {
         // Application settings
         this._settings = {
             toastDuration: 5000,
-            requestTimeout: 60000 // 60 seconds for model inference
+            requestTimeout: 60000, // 60 seconds for model inference
+            pingInterval: 5000,    // 5 seconds between health pings
+            pingTimeout: 3000      // 3 seconds timeout for ping requests
         };
     }
 
     /**
-     * Get the full API URL for lung cancer detection
-     * @returns {string} Full API URL
+     * Get the proxy base path
+     * @returns {string} Proxy base path
      */
-    get lungCancerApiUrl() {
-        const { baseUrl, detectPath } = this._endpoints.lungCancer;
-        return `${baseUrl}${detectPath}`;
+    get proxyBasePath() {
+        return this._proxyBasePath;
     }
 
     /**
-     * Get the full API URL for audio fake detection
-     * @returns {string} Full API URL
+     * Get all detector configurations
+     * @returns {Object} Detectors configuration
      */
-    get audioFakeApiUrl() {
-        const { baseUrl, detectPath } = this._endpoints.audioFake;
-        return `${baseUrl}${detectPath}`;
+    get detectors() {
+        return this._detectors;
+    }
+
+    /**
+     * Get detector configuration by key
+     * @param {string} detectorKey - Detector key ('lungCancer' or 'audioFake')
+     * @returns {Object|null} Detector configuration
+     */
+    getDetector(detectorKey) {
+        return this._detectors[detectorKey] || null;
+    }
+
+    /**
+     * Build the full URL for a detector endpoint
+     * Uses window.location.origin + proxy path
+     * @param {string} detectorKey - Detector key
+     * @param {string} endpointPath - Endpoint path (e.g., '/detector/lung_cancer_detection')
+     * @param {Object} queryParams - Optional query parameters
+     * @returns {string} Full URL
+     */
+    buildDetectorUrl(detectorKey, endpointPath, queryParams = {}) {
+        const detector = this._detectors[detectorKey];
+        if (!detector) {
+            throw new Error(`Unknown detector: ${detectorKey}`);
+        }
+
+        // Build base URL: origin + proxy + service name + endpoint
+        const baseUrl = `${window.location.origin}${this._proxyBasePath}/${detector.serviceName}${endpointPath}`;
+        
+        // Add query parameters if provided
+        const url = new URL(baseUrl);
+        Object.entries(queryParams).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                url.searchParams.append(key, value);
+            }
+        });
+
+        return url.toString();
+    }
+
+    /**
+     * Get the detect endpoint URL for a detector
+     * @param {string} detectorKey - Detector key
+     * @returns {string} Full detect URL
+     */
+    getDetectUrl(detectorKey) {
+        const detector = this._detectors[detectorKey];
+        if (!detector) {
+            throw new Error(`Unknown detector: ${detectorKey}`);
+        }
+        return this.buildDetectorUrl(detectorKey, detector.detectPath);
+    }
+
+    /**
+     * Get the ping endpoint URL for a detector
+     * @param {string} detectorKey - Detector key
+     * @returns {string} Full ping URL
+     */
+    getPingUrl(detectorKey) {
+        const detector = this._detectors[detectorKey];
+        if (!detector) {
+            throw new Error(`Unknown detector: ${detectorKey}`);
+        }
+        return this.buildDetectorUrl(detectorKey, detector.pingPath);
     }
 
     /**

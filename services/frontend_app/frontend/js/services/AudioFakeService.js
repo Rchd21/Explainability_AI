@@ -2,14 +2,16 @@
  * AudioFakeService.js
  * 
  * Service for communicating with the audio fake detection API.
- * Handles audio upload and result parsing.
+ * Uses ApiService for proxy-based routing through Nginx.
  */
 
 import { config } from '../core/Config.js';
+import { apiService } from '../core/ApiService.js';
 
 class AudioFakeService {
     constructor() {
         this._abortController = null;
+        this._detectorKey = 'audioFake';
     }
 
     /**
@@ -28,19 +30,16 @@ class AudioFakeService {
         const formData = new FormData();
         formData.append('file', file);
 
+        const detector = config.getDetector(this._detectorKey);
+
         try {
-            const response = await fetch(config.audioFakeApiUrl, {
-                method: 'POST',
-                body: formData,
-                signal: this._abortController.signal
-            });
+            const result = await apiService.postToDetector(
+                this._detectorKey,
+                detector.detectPath,
+                formData,
+                { signal: this._abortController.signal }
+            );
 
-            if (!response.ok) {
-                const error = await this._parseError(response);
-                throw new Error(error);
-            }
-
-            const result = await response.json();
             return this._parseResult(result);
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -49,20 +48,6 @@ class AudioFakeService {
             throw error;
         } finally {
             this._abortController = null;
-        }
-    }
-
-    /**
-     * Parse API error response
-     * @param {Response} response - Fetch response
-     * @returns {Promise<string>} Error message
-     */
-    async _parseError(response) {
-        try {
-            const data = await response.json();
-            return data.detail || data.message || `HTTP ${response.status}: ${response.statusText}`;
-        } catch {
-            return `HTTP ${response.status}: ${response.statusText}`;
         }
     }
 

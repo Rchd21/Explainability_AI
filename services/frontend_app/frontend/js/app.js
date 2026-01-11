@@ -6,7 +6,7 @@
  */
 
 import { config, eventBus, Events, state } from './core/index.js';
-import { toast } from './components/index.js';
+import { toast, backendStatus } from './components/index.js';
 import { lungCancerView, audioFakeView } from './views/index.js';
 
 /**
@@ -35,6 +35,7 @@ class App {
 
             // Initialize components
             toast.initialize();
+            backendStatus.initialize();
 
             // Initialize views
             lungCancerView.initialize();
@@ -105,6 +106,11 @@ class App {
             this._switchDetector(detector);
         });
 
+        // Backend status changes
+        eventBus.on(Events.BACKEND_STATUS_CHANGED, ({ detectorKey, isUp }) => {
+            console.log(`[App] Backend ${detectorKey} status: ${isUp ? 'UP' : 'DOWN'}`);
+        });
+
         // Analysis events (for analytics/logging if needed)
         eventBus.on(Events.LUNG_ANALYSIS_START, () => {
             console.log('[App] Lung cancer analysis started');
@@ -152,6 +158,14 @@ class App {
      */
     getView(detectorId) {
         return this._views[detectorId];
+    }
+
+    /**
+     * Get backend status component
+     * @returns {Object} BackendStatus instance
+     */
+    getBackendStatus() {
+        return backendStatus;
     }
 }
 

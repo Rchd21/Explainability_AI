@@ -91,6 +91,13 @@ export const Events = {
     // Theme events
     THEME_CHANGED: 'theme:changed',
     
+    // API events
+    API_ERROR: 'api:error',
+    
+    // Backend status events
+    BACKEND_STATUS_CHANGED: 'backend:status:changed',
+    BACKEND_PING_SENT: 'backend:ping:sent',
+    
     // Lung cancer detector events
     LUNG_FILE_SELECTED: 'lung:file:selected',
     LUNG_FILE_REMOVED: 'lung:file:removed',
