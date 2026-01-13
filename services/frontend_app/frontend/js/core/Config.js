@@ -38,11 +38,15 @@ class Config {
                 description: 'Gradient-weighted Class Activation Mapping - Highlights important regions with a heatmap overlay',
                 badge: 'Recommended',
                 recommended: true,
-                legend: [
-                    { color: '#ff0000', label: 'High importance (red)' },
-                    { color: '#ffff00', label: 'Medium importance (yellow)' },
-                    { color: '#0000ff', label: 'Low importance (blue)' }
-                ]
+                legend: {
+                    title: 'Grad-CAM – Class Activation Map',
+                    items: [
+                        { icon: '🔴', color: '#ef4444', text: 'Warm colors (yellow / red): image regions that most strongly support the prediction of the selected class' },
+                        { icon: '🔵', color: '#3b82f6', text: 'Cool colors (blue): regions with lower activation (less influence on the prediction)' },
+                        { icon: '🎚️', color: '#8b5cf6', text: 'Color intensity: relative importance of each region (normalized between 0 and 1)' }
+                    ],
+                    note: { icon: '⚠️', text: 'This visualization highlights supporting evidence only (Grad-CAM uses positive activations)' }
+                }
             },
             {
                 value: 'lime',
@@ -50,11 +54,15 @@ class Config {
                 description: 'Local Interpretable Model-agnostic Explanations - Shows superpixel importance',
                 badge: 'Interpretable',
                 recommended: false,
-                legend: [
-                    { color: '#00ff00', label: 'Positive contribution (green)' },
-                    { color: '#ff0000', label: 'Negative contribution (red)' },
-                    { color: '#808080', label: 'Neutral regions (gray)' }
-                ]
+                legend: {
+                    title: 'LIME – Local Interpretable Explanation',
+                    items: [
+                        { icon: '🔴', color: '#ef4444', text: 'Red regions: areas that support the model\'s prediction' },
+                        { icon: '🔵', color: '#3b82f6', text: 'Blue regions: areas that oppose the model\'s prediction' },
+                        { icon: '🌫️', color: '#6b7280', text: 'Opacity: strength of influence (stronger = greater impact)' }
+                    ],
+                    note: { icon: 'ℹ️', text: 'Influence is computed at the superpixel level and projected onto pixels for visualization' }
+                }
             }
         ];
 
@@ -66,11 +74,15 @@ class Config {
                 description: 'Gradient-weighted Class Activation Mapping - Highlights important frequency regions with a heatmap',
                 badge: 'Recommended',
                 recommended: true,
-                legend: [
-                    { color: '#ff0000', label: 'High importance (red)' },
-                    { color: '#ffff00', label: 'Medium importance (yellow)' },
-                    { color: '#0000ff', label: 'Low importance (blue)' }
-                ]
+                legend: {
+                    title: 'Grad-CAM – Class Activation Map',
+                    items: [
+                        { icon: '🔴', color: '#ef4444', text: 'Warm colors (yellow / red): regions that most increase activation for the selected VGG16 ImageNet class' },
+                        { icon: '🔵', color: '#3b82f6', text: 'Cool colors (blue): lower activation regions (less influence)' },
+                        { icon: '🌫️', color: '#6b7280', text: 'Opacity: relative activation strength (normalized to 0–1)' }
+                    ],
+                    note: { icon: 'ℹ️', text: 'This is a proxy visualization (VGG16 ImageNet), not an explanation of the deepfake/audio classifier' }
+                }
             },
             {
                 value: 'lime',
@@ -78,11 +90,15 @@ class Config {
                 description: 'Local Interpretable Model-agnostic Explanations - Shows superpixel importance on spectrogram',
                 badge: 'Interpretable',
                 recommended: false,
-                legend: [
-                    { color: '#00ff00', label: 'Positive contribution (green)' },
-                    { color: '#ff0000', label: 'Negative contribution (red)' },
-                    { color: '#ffff00', label: 'Boundary regions (yellow)' }
-                ]
+                legend: {
+                    title: 'LIME – Local Interpretable Explanation',
+                    items: [
+                        { icon: '🔴', color: '#ef4444', text: 'Red regions: areas that support the model\'s prediction' },
+                        { icon: '🔵', color: '#3b82f6', text: 'Blue regions: areas that oppose the model\'s prediction' },
+                        { icon: '🌫️', color: '#6b7280', text: 'Opacity: strength of influence (stronger = greater impact)' }
+                    ],
+                    note: { icon: 'ℹ️', text: 'Influence is computed at the superpixel level and projected onto pixels for visualization' }
+                }
             },
             {
                 value: 'shap',
@@ -90,11 +106,15 @@ class Config {
                 description: 'SHapley Additive exPlanations - Game theory-based feature attribution',
                 badge: 'Advanced',
                 recommended: false,
-                legend: [
-                    { color: '#ff0000', label: 'Pushes toward fake (red)' },
-                    { color: '#ffffff', label: 'Neutral impact (white)' },
-                    { color: '#0000ff', label: 'Pushes toward real (blue)' }
-                ]
+                legend: {
+                    title: 'SHAP – SHapley Additive exPlanations',
+                    items: [
+                        { icon: '🔴', color: '#ef4444', text: 'Red regions: areas that increase the model score for the selected class' },
+                        { icon: '🔵', color: '#3b82f6', text: 'Blue regions: areas that decrease the model score for the selected class' },
+                        { icon: '🌫️', color: '#6b7280', text: 'Opacity: strength of contribution (stronger = larger impact)' }
+                    ],
+                    note: { icon: 'ℹ️', text: 'SHAP values represent local feature contributions relative to a masked baseline (model-agnostic image masker)' }
+                }
             }
         ];
 

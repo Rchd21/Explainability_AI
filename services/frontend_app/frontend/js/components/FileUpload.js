@@ -118,9 +118,9 @@ class FileUpload {
             });
         }
 
-        // Also check within preview container for .preview-remove or .audio-remove-btn
+        // Also check within preview container for .preview-remove, .audio-remove-btn, or .image-remove-btn
         if (this._preview) {
-            const previewRemoveBtn = this._preview.querySelector('.preview-remove, .audio-remove-btn');
+            const previewRemoveBtn = this._preview.querySelector('.preview-remove, .audio-remove-btn, .image-remove-btn');
             if (previewRemoveBtn && previewRemoveBtn !== removeBtn) {
                 previewRemoveBtn.addEventListener('click', (e) => {
                     e.preventDefault();

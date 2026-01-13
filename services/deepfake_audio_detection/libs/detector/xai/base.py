@@ -37,7 +37,7 @@ class XaiBase(LoggerClass, ABC):
         """
         LoggerClass.__init__(self)
         self._model: tf.keras.Model = model
-        self.logger.debug("Initialized %s", self.__class__.__name__)
+        self.logger.debug(f"Initialized {self.__class__.__name__}")
 
     @abstractmethod
     def explain(

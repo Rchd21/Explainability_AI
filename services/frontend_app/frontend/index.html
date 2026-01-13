@@ -117,9 +117,16 @@
 
                             <!-- Image Preview -->
                             <div class="image-preview hidden" id="lung-image-preview">
+                                <div class="image-preview-header">
+                                    <div class="image-preview-info">
+                                        <span class="image-icon">🖼️</span>
+                                        <span class="preview-filename" id="lung-preview-filename"></span>
+                                    </div>
+                                    <button class="image-remove-btn" id="lung-preview-remove" title="Remove and select another image">
+                                        <span>✕</span> Remove
+                                    </button>
+                                </div>
                                 <img id="lung-preview-img" src="" alt="CT scan preview">
-                                <button class="preview-remove" id="lung-preview-remove" title="Remove and select another image">×</button>
-                                <div class="preview-filename" id="lung-preview-filename"></div>
                             </div>
 
                             <!-- XAI Method Selection -->

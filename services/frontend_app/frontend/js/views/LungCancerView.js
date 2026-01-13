@@ -279,15 +279,37 @@ class LungCancerView {
             return;
         }
 
-        let html = '<div class="xai-legend-items">';
-        methodConfig.legend.forEach(item => {
+        const { title, items, note } = methodConfig.legend;
+
+        let html = '<div class="xai-legend-card">';
+        
+        // Title
+        if (title) {
+            html += `<h5 class="xai-legend-title">${title}</h5>`;
+        }
+        
+        // Legend items
+        html += '<div class="xai-legend-items">';
+        items.forEach(item => {
             html += `
-                <div class="xai-legend-item">
-                    <span class="xai-legend-color" style="background-color: ${item.color}"></span>
-                    <span class="xai-legend-label">${item.label}</span>
+                <div class="xai-legend-row">
+                    <span class="xai-legend-icon" style="background: ${item.color}20; border-color: ${item.color};">${item.icon}</span>
+                    <span class="xai-legend-text">${item.text}</span>
                 </div>
             `;
         });
+        html += '</div>';
+        
+        // Note
+        if (note) {
+            html += `
+                <div class="xai-legend-note">
+                    <span class="xai-legend-note-icon">${note.icon}</span>
+                    <span class="xai-legend-note-text">${note.text}</span>
+                </div>
+            `;
+        }
+        
         html += '</div>';
         
         legendContainer.innerHTML = html;
