@@ -1,12 +1,20 @@
-from __future__ import annotations
+# ====== Code Summary ======
+# Implements a Grad-CAM explainer compatible with TorchXRayVision models.
+# This module generates class activation heatmaps overlaid on grayscale medical images
+# for model interpretability. It supports customizable color mapping, transparency,
+# and hook-based gradient extraction from convolutional layers.
 
+# ====== Standard Library Imports ======
+from __future__ import annotations
 import uuid
 from typing import Callable, Literal
 
+# ====== Third-Party Library Imports ======
 import numpy as np
 import torch
 import torch.nn.functional as F
 
+# ====== Internal Project Imports ======
 from .base import XaiBase
 
 TorchDevice = torch.device
@@ -29,6 +37,7 @@ class XaiGradCAM(XaiBase):
 
     @staticmethod
     def _normalize_01(arr: np.ndarray) -> np.ndarray:
+        # 1. Normalize array to range [0, 1]
         arr = arr.astype(np.float32)
         arr_min: float = float(arr.min())
         arr_max: float = float(arr.max())
@@ -36,29 +45,21 @@ class XaiGradCAM(XaiBase):
 
     @staticmethod
     def _tensor_to_grayscale_01(x: torch.Tensor) -> np.ndarray:
-        """
-        Convert input tensor [1,C,H,W] to grayscale image [H,W] in [0,1].
-        Uses min-max normalization on the tensor content.
-        """
+        # 1. Validate input shape
         if x.ndim != 4 or x.shape[0] != 1:
             raise ValueError(f"Expected x shape [1,C,H,W], got {tuple(x.shape)}")
 
-        x_np = x.detach().cpu().float().numpy()  # [1,C,H,W]
-        # If C>1, average channels; if C==1, squeeze it.
-        img = x_np[0].mean(axis=0)  # [H,W]
-        img = XaiGradCAM._normalize_01(img)
-        return img
+        # 2. Convert to NumPy and average channels to grayscale
+        x_np = x.detach().cpu().float().numpy()
+        img = x_np[0].mean(axis=0)
+
+        # 3. Normalize to [0,1]
+        return XaiGradCAM._normalize_01(img)
 
     @staticmethod
     def _jet_colormap(heatmap_01: np.ndarray) -> np.ndarray:
-        """
-        Lightweight "jet-like" colormap without matplotlib.
-        Input: [H,W] in [0,1]
-        Output: [H,W,3] in [0,1]
-        """
+        # 1. Apply lightweight Jet colormap
         h = np.clip(heatmap_01.astype(np.float32), 0.0, 1.0)
-
-        # Simple approximation of jet:
         r = np.clip(1.5 - np.abs(4.0 * h - 3.0), 0.0, 1.0)
         g = np.clip(1.5 - np.abs(4.0 * h - 2.0), 0.0, 1.0)
         b = np.clip(1.5 - np.abs(4.0 * h - 1.0), 0.0, 1.0)
@@ -73,39 +74,37 @@ class XaiGradCAM(XaiBase):
             threshold: float | None = None,
             colormap: Literal["jet"] = "jet",
     ) -> np.ndarray:
-        """
-        Create an overlay image (RGB) from a grayscale base + heatmap.
-
-        base_gray_01: [H,W] in [0,1]
-        heatmap_01:   [H,W] in [0,1]
-        returns:      [H,W,3] in [0,1]
-        """
+        # 1. Validate shape
         if base_gray_01.shape != heatmap_01.shape:
             raise ValueError(
                 f"base and heatmap must have same shape, got {base_gray_01.shape} vs {heatmap_01.shape}"
             )
 
+        # 2. Normalize base and heatmap
         base = np.clip(base_gray_01.astype(np.float32), 0.0, 1.0)
         hm = np.clip(heatmap_01.astype(np.float32), 0.0, 1.0)
 
+        # 3. Apply thresholding if provided
         if threshold is not None:
-            # Keep only the "important" regions
             hm = np.where(hm >= float(threshold), hm, 0.0)
 
-        base_rgb = np.stack([base, base, base], axis=-1)  # [H,W,3]
+        # 4. Convert grayscale base to RGB
+        base_rgb = np.stack([base, base, base], axis=-1)
 
+        # 5. Apply colormap
         if colormap == "jet":
             hm_rgb = XaiGradCAM._jet_colormap(hm)
         else:
             raise ValueError(f"Unsupported colormap: {colormap}")
 
-        a = float(alpha)
-        out = (1.0 - a) * base_rgb + a * hm_rgb
+        # 6. Blend base with heatmap
+        out = (1.0 - alpha) * base_rgb + alpha * hm_rgb
         return np.clip(out, 0.0, 1.0)
 
     # ====== Private Internal Methods ======
 
     def _find_last_conv(self) -> torch.nn.Conv2d:
+        # 1. Search for last Conv2d layer in model
         last: torch.nn.Conv2d | None = None
         for module in self._model.modules():
             if isinstance(module, torch.nn.Conv2d):
@@ -118,13 +117,16 @@ class XaiGradCAM(XaiBase):
         return last
 
     def _validate_target_label(self, target_label: str) -> int:
+        # 1. Ensure model has .pathologies attribute
         if not hasattr(self._model, "pathologies"):
             raise ValueError("Model must have .pathologies (TorchXRayVision DenseNet).")
 
+        # 2. Validate label
         pathologies: list[str] = list(self._model.pathologies)
         if target_label not in pathologies:
             raise ValueError(f"Unknown label '{target_label}'. Available: {pathologies}")
 
+        # 3. Return class index
         return pathologies.index(target_label)
 
     def _compute_gradcam(
@@ -134,54 +136,57 @@ class XaiGradCAM(XaiBase):
             target_layer: torch.nn.Module,
             run_id: str,
     ) -> np.ndarray:
-        activations: None | torch.Tensor = None
-        gradients: None | torch.Tensor = None
+        # 1. Initialize activation and gradient holders
+        activations: torch.Tensor | None = None
+        gradients: torch.Tensor | None = None
 
+        # 2. Define forward hook
         def fwd_hook(_module, _inputs, output) -> None:
             nonlocal activations
             activations = output
 
+        # 3. Define backward hook
         def bwd_hook(_module, _grad_in, grad_out) -> None:
             nonlocal gradients
             gradients = grad_out[0]
 
-        self.logger.debug(
-            f"PROGRESS registering hooks (run_id={run_id}, layer='{target_layer.__class__.__name__}')"
-        )
-
+        # 4. Register hooks
+        self.logger.debug(f"PROGRESS registering hooks (run_id={run_id})")
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
 
         try:
+            # 5. Forward pass
             out: torch.Tensor = self._model(x)
 
+            # 6. Backward pass
             self._model.zero_grad(set_to_none=True)
             score: torch.Tensor = out[0, class_idx]
             score.backward()
 
+            # 7. Validate hooks captured tensors
             if activations is None or gradients is None:
                 raise RuntimeError("Grad-CAM hooks did not capture tensors.")
 
-            weights: torch.Tensor = gradients.mean(dim=(2, 3), keepdim=True)
-            cam: torch.Tensor = (weights * activations).sum(dim=1)
+            # 8. Compute weighted activations
+            weights = gradients.mean(dim=(2, 3), keepdim=True)
+            cam = (weights * activations).sum(dim=1)
             cam = F.relu(cam)
 
+            # 9. Resize CAM to input size
             cam = F.interpolate(
                 cam.unsqueeze(1),
-                size=(int(x.shape[2]), int(x.shape[3])),
+                size=(x.shape[2], x.shape[3]),
                 mode="bilinear",
                 align_corners=False,
             )
 
-            cam_np: np.ndarray = cam.squeeze().detach().cpu().numpy()
-            cam_np = self._normalize_01(cam_np)
-
-            self.logger.debug(
-                f"PROGRESS computed heatmap (run_id={run_id}, shape={cam_np.shape})"
-            )
-            return cam_np
+            # 10. Convert to NumPy and normalize
+            cam_np = cam.squeeze().detach().cpu().numpy()
+            return self._normalize_01(cam_np)
 
         finally:
+            # 11. Remove hooks
             h1.remove()
             h2.remove()
             self.logger.debug(f"PROGRESS removed hooks (run_id={run_id})")
@@ -201,14 +206,21 @@ class XaiGradCAM(XaiBase):
             **kwargs,
     ) -> np.ndarray:
         """
-        Returns the explained image overlay by default: [H,W,3] in [0,1].
+        Generate Grad-CAM heatmap or overlay.
 
-        If return_heatmap=True, returns the raw heatmap [H,W] in [0,1].
+        Args:
+            x (torch.Tensor): Input tensor [1,C,H,W].
+            target_label (str): Target pathology label.
+            base_image (np.ndarray): Grayscale base image for overlay [H,W].
+            alpha (float): Overlay transparency.
+            threshold (float | None): Optional threshold to mask heatmap.
+            colormap (Literal["jet"]): Colormap to use.
+            return_heatmap (bool): Whether to return raw heatmap instead of overlay.
 
-        base_image:
-          - optional grayscale base image [H,W] (float in [0,1] or uint8 in [0,255])
-          - if not provided, base image is derived from x by min-max normalization.
+        Returns:
+            np.ndarray: [H,W] heatmap or [H,W,3] overlay, both in [0,1].
         """
+        # 1. Generate run ID for logging
         run_id: str = uuid.uuid4().hex[:12]
         self.logger.info(
             f"START generating Grad-CAM (run_id={run_id}, target_label='{target_label}', "
@@ -216,22 +228,23 @@ class XaiGradCAM(XaiBase):
         )
 
         try:
-            class_idx: int = self._validate_target_label(target_label)
-            target_layer: torch.nn.Module = self._find_last_conv()
+            # 2. Validate target label
+            class_idx = self._validate_target_label(target_label)
 
-            heatmap: np.ndarray = self._compute_gradcam(
-                x=x,
-                class_idx=class_idx,
-                target_layer=target_layer,
-                run_id=run_id,
-            )
+            # 3. Identify last conv layer
+            target_layer = self._find_last_conv()
 
+            # 4. Compute heatmap
+            heatmap = self._compute_gradcam(x, class_idx, target_layer, run_id)
+
+            # 5. Return raw heatmap if requested
             if return_heatmap:
                 self.logger.info(
                     f"END generating Grad-CAM (run_id={run_id}, heatmap_shape={heatmap.shape})"
                 )
                 return heatmap
 
+            # 6. Prepare base grayscale image
             if base_image is None:
                 base_gray = self._tensor_to_grayscale_01(x)
             else:
@@ -242,7 +255,8 @@ class XaiGradCAM(XaiBase):
                     base_gray = base_gray / 255.0
                 base_gray = np.clip(base_gray, 0.0, 1.0)
 
-            overlay: np.ndarray = self._overlay_heatmap(
+            # 7. Overlay heatmap
+            overlay = self._overlay_heatmap(
                 base_gray,
                 heatmap,
                 alpha=alpha,
@@ -250,12 +264,14 @@ class XaiGradCAM(XaiBase):
                 colormap=colormap,
             )
 
+            # 8. Log and return overlay
             self.logger.info(
                 f"END generating Grad-CAM overlay (run_id={run_id}, overlay_shape={overlay.shape})"
             )
             return overlay
 
         except Exception as exc:
+            # 9. Log exception and re-raise
             self.logger.error(
                 f"END generating Grad-CAM with error (run_id={run_id}, "
                 f"exc_type='{type(exc).__name__}', message='{exc}')"

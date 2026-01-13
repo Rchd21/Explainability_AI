@@ -29,7 +29,6 @@ def create_app():
         router=detector_router,
         prefix=f"{CONTEXT.config.BASE_API_PATH}detector"
     )
-    # TODO: ici on ajoute les routers des nouveaux groupes de endpoints si besoin
     return app
 
 

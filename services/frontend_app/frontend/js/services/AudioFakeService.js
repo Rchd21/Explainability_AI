@@ -15,11 +15,12 @@ class AudioFakeService {
     }
 
     /**
-     * Send audio for fake detection
+     * Send audio for fake detection with XAI explanation
      * @param {File} file - Audio file to analyze
+     * @param {string} xaiMethod - XAI method to use (gradcam, lime, shap)
      * @returns {Promise<Object>} Detection result
      */
-    async detect(file) {
+    async detect(file, xaiMethod = 'gradcam') {
         // Cancel any pending request
         if (this._abortController) {
             this._abortController.abort();
@@ -29,6 +30,7 @@ class AudioFakeService {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('xai_method', xaiMethod);
 
         const detector = config.getDetector(this._detectorKey);
 
@@ -52,65 +54,73 @@ class AudioFakeService {
     }
 
     /**
-     * Parse detection result
+     * Parse detection result from API response
      * @param {Object} data - API response data
      * @returns {Object} Parsed result
      */
     _parseResult(data) {
-        // This is a placeholder - adjust based on actual API response
+        const { detector_result, duration, xai_image_base64 } = data;
+        
+        // Extract audio_prediction from detector_result
+        const audioPrediction = detector_result?.audio_prediction || {};
+        const decision = audioPrediction.decision || 'Unknown';
+        const label = audioPrediction.label || 'unknown';
+        const confidence = audioPrediction.confidence ?? 0;
+        const classIndex = audioPrediction.class_index ?? 0;
+        
+        // Determine if audio is fake
+        const isFake = this._isFakePrediction(label, classIndex, decision);
+        
         return {
-            prediction: data.prediction || data.result,
-            confidence: data.confidence || 0,
-            label: this._getPredictionLabel(data.prediction || data.result),
-            isFake: this._isFakePrediction(data.prediction || data.result),
-            duration: data.duration || 0,
-            audioLength: data.audio_length || null,
-            spectrogramBase64: data.spectrogram_base64 || null,
-            spectrogramUrl: data.spectrogram_base64 
-                ? `data:image/png;base64,${data.spectrogram_base64}` 
-                : null
+            // Prediction info
+            decision: decision,
+            label: label,
+            confidence: confidence,
+            classIndex: classIndex,
+            isFake: isFake,
+            
+            // XAI info
+            xaiMethod: detector_result?.xai_method || 'gradcam',
+            xaiImageBase64: xai_image_base64,
+            xaiImageUrl: xai_image_base64 ? `data:image/png;base64,${xai_image_base64}` : null,
+            
+            // Meta
+            duration: duration || 0
         };
     }
 
     /**
-     * Get human-readable prediction label
-     * @param {*} prediction - Prediction value
-     * @returns {string} Label
-     */
-    _getPredictionLabel(prediction) {
-        if (typeof prediction === 'boolean') {
-            return prediction ? 'Fake Audio Detected' : 'Authentic Audio';
-        }
-        if (typeof prediction === 'number') {
-            return prediction === 1 ? 'Fake Audio Detected' : 'Authentic Audio';
-        }
-        if (typeof prediction === 'string') {
-            const lower = prediction.toLowerCase();
-            if (lower.includes('fake') || lower.includes('synthetic') || lower.includes('generated')) {
-                return 'Fake Audio Detected';
-            }
-            return 'Authentic Audio';
-        }
-        return String(prediction);
-    }
-
-    /**
      * Determine if prediction indicates fake audio
-     * @param {*} prediction - Prediction value
+     * @param {string} label - Prediction label
+     * @param {number} classIndex - Class index (0=real, 1=fake)
+     * @param {string} decision - Decision string
      * @returns {boolean} True if fake
      */
-    _isFakePrediction(prediction) {
-        if (typeof prediction === 'boolean') {
-            return prediction;
+    _isFakePrediction(label, classIndex, decision) {
+        // Check label string
+        if (typeof label === 'string') {
+            const lower = label.toLowerCase();
+            if (lower === 'fake' || lower.includes('fake')) {
+                return true;
+            }
+            if (lower === 'real' || lower.includes('real') || lower.includes('authentic')) {
+                return false;
+            }
         }
-        if (typeof prediction === 'number') {
-            return prediction === 1;
+        
+        // Check decision string
+        if (typeof decision === 'string') {
+            const lower = decision.toLowerCase();
+            if (lower.includes('fake') || lower.includes('synthetic') || lower.includes('generated')) {
+                return true;
+            }
+            if (lower.includes('real') || lower.includes('authentic')) {
+                return false;
+            }
         }
-        if (typeof prediction === 'string') {
-            const lower = prediction.toLowerCase();
-            return lower.includes('fake') || lower.includes('synthetic') || lower.includes('generated');
-        }
-        return false;
+        
+        // Fallback to class index (1 = fake)
+        return classIndex === 1;
     }
 
     /**

@@ -3,6 +3,7 @@
  * 
  * Component for displaying and monitoring backend service health status.
  * Pings detector backends periodically and shows UP/DOWN status with animations.
+ * Pauses pinging for a service while a request is in progress.
  */
 
 import { config } from '../core/Config.js';
@@ -15,6 +16,7 @@ class BackendStatus {
         this._statusElements = new Map();
         this._intervalId = null;
         this._statuses = new Map();
+        this._busyServices = new Set(); // Track services with active requests
         
         // Initialize status for all detectors
         Object.keys(config.detectors).forEach(key => {
@@ -40,8 +42,42 @@ class BackendStatus {
 
         this._renderStatusCards();
         this._startPingLoop();
+        this._setupEventListeners();
         
         console.log('[BackendStatus] Initialized');
+    }
+
+    /**
+     * Set up event listeners for analysis events
+     */
+    _setupEventListeners() {
+        // Lung cancer analysis events
+        eventBus.on(Events.LUNG_ANALYSIS_START, () => {
+            this._busyServices.add('lungCancer');
+            console.log('[BackendStatus] lungCancer marked as busy');
+        });
+        eventBus.on(Events.LUNG_ANALYSIS_SUCCESS, () => {
+            this._busyServices.delete('lungCancer');
+            console.log('[BackendStatus] lungCancer no longer busy');
+        });
+        eventBus.on(Events.LUNG_ANALYSIS_ERROR, () => {
+            this._busyServices.delete('lungCancer');
+            console.log('[BackendStatus] lungCancer no longer busy (error)');
+        });
+
+        // Audio fake analysis events
+        eventBus.on(Events.AUDIO_ANALYSIS_START, () => {
+            this._busyServices.add('audioFake');
+            console.log('[BackendStatus] audioFake marked as busy');
+        });
+        eventBus.on(Events.AUDIO_ANALYSIS_SUCCESS, () => {
+            this._busyServices.delete('audioFake');
+            console.log('[BackendStatus] audioFake no longer busy');
+        });
+        eventBus.on(Events.AUDIO_ANALYSIS_ERROR, () => {
+            this._busyServices.delete('audioFake');
+            console.log('[BackendStatus] audioFake no longer busy (error)');
+        });
     }
 
     /**
@@ -116,24 +152,33 @@ class BackendStatus {
     }
 
     /**
-     * Ping all backend services
+     * Ping all backend services (except busy ones)
      */
     async _pingAllBackends() {
         const detectorKeys = Object.keys(config.detectors);
         
+        // Filter out busy services
+        const availableKeys = detectorKeys.filter(key => !this._busyServices.has(key));
+        
+        if (availableKeys.length === 0) {
+            console.log('[BackendStatus] All services busy, skipping ping');
+            return;
+        }
+        
         // Emit ping sent event for animations
         eventBus.emit(Events.BACKEND_PING_SENT, {});
         
-        // Trigger ping animation on all indicators
-        this._statusElements.forEach((elements) => {
-            elements.indicator?.classList.add('pinging');
+        // Trigger ping animation only on available indicators
+        availableKeys.forEach(key => {
+            const elements = this._statusElements.get(key);
+            elements?.indicator?.classList.add('pinging');
             setTimeout(() => {
-                elements.indicator?.classList.remove('pinging');
+                elements?.indicator?.classList.remove('pinging');
             }, 300);
         });
 
-        // Ping all backends in parallel
-        const pingPromises = detectorKeys.map(key => this._pingBackend(key));
+        // Ping available backends in parallel
+        const pingPromises = availableKeys.map(key => this._pingBackend(key));
         await Promise.all(pingPromises);
     }
 
@@ -142,6 +187,12 @@ class BackendStatus {
      * @param {string} detectorKey - Detector key
      */
     async _pingBackend(detectorKey) {
+        // Skip if service is busy
+        if (this._busyServices.has(detectorKey)) {
+            console.log(`[BackendStatus] Skipping ping for busy service: ${detectorKey}`);
+            return;
+        }
+
         try {
             const result = await apiService.pingDetector(detectorKey);
             
@@ -233,6 +284,22 @@ class BackendStatus {
     }
 
     /**
+     * Mark a service as busy (no pinging)
+     * @param {string} detectorKey - Detector key
+     */
+    setServiceBusy(detectorKey) {
+        this._busyServices.add(detectorKey);
+    }
+
+    /**
+     * Mark a service as available (can ping)
+     * @param {string} detectorKey - Detector key
+     */
+    setServiceAvailable(detectorKey) {
+        this._busyServices.delete(detectorKey);
+    }
+
+    /**
      * Get status for a detector
      * @param {string} detectorKey - Detector key
      * @returns {Object} Status object
@@ -265,6 +332,7 @@ class BackendStatus {
         this.stopPingLoop();
         this._statusElements.clear();
         this._statuses.clear();
+        this._busyServices.clear();
     }
 }
 

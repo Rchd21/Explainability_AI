@@ -3,6 +3,7 @@
  * 
  * Reusable file upload component with drag-and-drop support.
  * Handles image and audio file uploads with preview.
+ * Always allows file removal and new upload.
  */
 
 import { config } from '../core/Config.js';
@@ -30,6 +31,7 @@ class FileUpload {
         this._input = null;
         this._preview = null;
         this._currentFile = null;
+        this._objectUrl = null; // Track object URL for cleanup
     }
 
     /**
@@ -46,6 +48,10 @@ class FileUpload {
         }
 
         this._setupEventListeners();
+        
+        // Ensure initial state is correct
+        this._resetState();
+        
         console.log(`[FileUpload] Initialized for ${this._detectorType}`);
     }
 
@@ -54,7 +60,9 @@ class FileUpload {
      */
     _setupEventListeners() {
         // Click to open file dialog
-        this._zone.addEventListener('click', () => {
+        this._zone.addEventListener('click', (e) => {
+            // Prevent click on remove button from opening file dialog
+            if (e.target.closest('.preview-remove')) return;
             this._input.click();
         });
 
@@ -90,13 +98,36 @@ class FileUpload {
             }
         });
 
-        // Preview remove button
-        const removeBtn = this._preview?.querySelector('[id$="-preview-remove"]');
+        // Preview remove buttons - set up for both possible button locations
+        this._setupRemoveButton();
+    }
+
+    /**
+     * Set up remove button event listener
+     */
+    _setupRemoveButton() {
+        // For image preview - button with id lung-preview-remove or audio-preview-remove
+        const removeId = `${this._detectorType === 'lungCancer' ? 'lung' : 'audio'}-preview-remove`;
+        const removeBtn = document.getElementById(removeId);
+        
         if (removeBtn) {
             removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 this.removeFile();
             });
+        }
+
+        // Also check within preview container for .preview-remove or .audio-remove-btn
+        if (this._preview) {
+            const previewRemoveBtn = this._preview.querySelector('.preview-remove, .audio-remove-btn');
+            if (previewRemoveBtn && previewRemoveBtn !== removeBtn) {
+                previewRemoveBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.removeFile();
+                });
+            }
         }
     }
 
@@ -110,12 +141,25 @@ class FileUpload {
         
         if (!validation.valid) {
             toast.error('Invalid File', validation.error);
+            // Reset the input
+            this._input.value = '';
             return;
         }
 
+        // Clean up previous file if any
+        this._cleanupObjectUrl();
+
         this._currentFile = file;
         this._showPreview(file);
+        
+        // Update zone state
         this._zone.classList.add('has-file');
+        
+        // Hide upload content, show preview
+        const uploadContent = this._zone.querySelector('.upload-zone-content');
+        if (uploadContent) {
+            uploadContent.style.display = 'none';
+        }
         
         // Emit file selected event
         eventBus.emit(this._events.selected, { file });
@@ -141,7 +185,7 @@ class FileUpload {
      */
     _showImagePreview(file) {
         const img = this._preview.querySelector('img');
-        const filename = this._preview.querySelector('[id$="-preview-filename"]');
+        const filename = this._preview.querySelector('.preview-filename, [id$="-preview-filename"]');
         
         if (img && file) {
             const reader = new FileReader();
@@ -156,6 +200,8 @@ class FileUpload {
         }
         
         this._preview.classList.add('visible');
+        this._preview.classList.remove('hidden');
+        this._preview.style.display = '';
     }
 
     /**
@@ -164,11 +210,14 @@ class FileUpload {
      */
     _showAudioPreview(file) {
         const audio = this._preview.querySelector('audio');
-        const filename = this._preview.querySelector('[id$="-preview-filename"]');
+        const filename = this._preview.querySelector('.audio-filename, [id$="-preview-filename"]');
         
         if (audio && file) {
-            const url = URL.createObjectURL(file);
-            audio.src = url;
+            // Clean up previous object URL
+            this._cleanupObjectUrl();
+            
+            this._objectUrl = URL.createObjectURL(file);
+            audio.src = this._objectUrl;
         }
         
         if (filename) {
@@ -177,16 +226,34 @@ class FileUpload {
         
         this._preview.classList.add('visible');
         this._preview.classList.remove('hidden');
+        this._preview.style.display = '';
     }
 
     /**
-     * Remove current file
+     * Clean up object URL to prevent memory leaks
      */
-    removeFile() {
+    _cleanupObjectUrl() {
+        if (this._objectUrl) {
+            URL.revokeObjectURL(this._objectUrl);
+            this._objectUrl = null;
+        }
+    }
+
+    /**
+     * Reset state to initial
+     */
+    _resetState() {
         this._currentFile = null;
         this._input.value = '';
-        this._zone.classList.remove('has-file');
+        this._zone.classList.remove('has-file', 'drag-over');
         
+        // Show upload content
+        const uploadContent = this._zone.querySelector('.upload-zone-content');
+        if (uploadContent) {
+            uploadContent.style.display = '';
+        }
+        
+        // Hide preview
         if (this._preview) {
             this._preview.classList.remove('visible');
             this._preview.classList.add('hidden');
@@ -195,8 +262,22 @@ class FileUpload {
             if (img) img.src = '';
             
             const audio = this._preview.querySelector('audio');
-            if (audio) audio.src = '';
+            if (audio) {
+                audio.pause();
+                audio.src = '';
+            }
         }
+        
+        this._cleanupObjectUrl();
+    }
+
+    /**
+     * Remove current file
+     */
+    removeFile() {
+        console.log(`[FileUpload] Removing file for ${this._detectorType}`);
+        
+        this._resetState();
         
         // Emit file removed event
         eventBus.emit(this._events.removed, {});
@@ -216,6 +297,14 @@ class FileUpload {
      */
     hasFile() {
         return this._currentFile !== null;
+    }
+
+    /**
+     * Destroy the component and clean up
+     */
+    destroy() {
+        this._cleanupObjectUrl();
+        this._currentFile = null;
     }
 }
 

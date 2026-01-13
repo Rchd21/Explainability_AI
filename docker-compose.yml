@@ -28,6 +28,10 @@ services:
     env_file:
       - ./config/global.env
       - ./config/deepfake_audio_detection.env
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     networks:
       - backend
 
@@ -40,6 +44,10 @@ services:
     env_file:
       - ./config/global.env
       - ./config/lung_cancer_detection.env
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     networks:
       - backend
 

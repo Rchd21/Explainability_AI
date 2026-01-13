@@ -120,16 +120,34 @@ class ApiService {
             headers['Content-Type'] = 'application/json';
         }
 
+        // Always create our own abort controller with timeout
+        // This ensures the 5 minute timeout is always enforced
+        const timeoutController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('[ApiService] Request timeout after', config.settings.requestTimeout, 'ms');
+            timeoutController.abort();
+        }, config.settings.requestTimeout);
+
+        // If an external signal is provided, listen to it as well
+        if (options.signal) {
+            options.signal.addEventListener('abort', () => {
+                clearTimeout(timeoutId);
+                timeoutController.abort();
+            });
+        }
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: isFormData ? options.headers : headers,
                 body: isFormData ? body : JSON.stringify(body),
-                signal: options.signal
+                signal: timeoutController.signal
             });
 
+            clearTimeout(timeoutId);
             return await this._handleResponse(response);
         } catch (error) {
+            clearTimeout(timeoutId);
             return this._handleError(error, detectorKey, endpointPath);
         }
     }

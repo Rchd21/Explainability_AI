@@ -1,6 +1,29 @@
-loggerplusplus==1.0.1
-python-dotenv==1.1.1
-starlette==0.46.2
-uvicorn==0.35.0
-fastapi==0.115.14
-pyfiglet==1.0.4
+# ====== Core ML stack (must stay consistent) ======
+tensorflow==2.6.2
+keras==2.6.0
+Keras-Preprocessing==1.1.2
+typing-extensions==3.7.4.3
+protobuf==3.20.3
+
+numpy==1.19.5
+pandas==1.1.5
+librosa==0.9.2
+scikit-image==0.19.3
+opencv-python-headless==4.5.5.64
+Pillow==9.5.0
+matplotlib==3.3.4
+
+# ====== API (older stack compatible with pydantic<2 and old typing-extensions) ======
+fastapi==0.70.1
+starlette==0.16.0
+uvicorn[standard]==0.15.0
+python-multipart==0.0.5
+
+# ====== XAI ======
+lime==0.2.0.1
+shap==0.44.1
+
+# ====== Logging / Utilities ======
+python-dotenv==1.0.0
+pyfiglet==0.8.post1
+loggerplusplus==1.0.5

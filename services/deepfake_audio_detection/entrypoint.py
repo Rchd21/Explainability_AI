@@ -1,18 +1,19 @@
+# ====== Code Summary ======
+# Application entrypoint for the deepfake audio detection service.
+# Creates and configures the FastAPI application.
+
 # ====== Third-Party Library Imports ======
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from loggerplusplus import loggerplusplus
-from starlette.types import ASGIApp
 from fastapi import FastAPI
-from typing import cast
 
 # ====== Internal Project Imports ======
 from config import CONFIG
 
 # Detector
-from detector import FakeAudioDetector
+from detector import FakeAudioDetector, AudioDetectorModel
 
-# Background & api context
+# Backend & API context
 from backend import create_app, CONTEXT
 
 
@@ -23,20 +24,25 @@ from backend import create_app, CONTEXT
 def _build_app() -> FastAPI:
     """
     Assemble and return a fully configured FastAPI application.
-
+    
     Returns:
         FastAPI: The application object to be served by Uvicorn.
     """
-    # Create app context -> inject shared instance to the global shared context.
+    # Create app context -> inject shared instances to the global shared context
     CONTEXT.config = CONFIG
     CONTEXT.logger = loggerplusplus.bind(identifier="BACKEND")
-    #CONTEXT.detector = FakeAudioDetector(...)
-    # TODO: ici on instancie les classes
-
+    
+    # Initialize detector with model
+    CONTEXT.detector = FakeAudioDetector(
+        model=AudioDetectorModel(
+            model_path=CONFIG.DETECTOR_MODEL_PATH
+        )
+    )
+    
     # Create the FastAPI application
     fastapi_app = create_app()
-
-    # CORS: no restriction
+    
+    # CORS: no restriction (for development)
     fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -44,7 +50,7 @@ def _build_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
+    
     return fastapi_app
 
 

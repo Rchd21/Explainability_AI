@@ -31,20 +31,70 @@ class Config {
         };
 
         // Available XAI methods for lung cancer detection
-        this._xaiMethods = [
+        this._xaiMethodsLung = [
             {
                 value: 'gradcam',
                 name: 'Grad-CAM',
                 description: 'Gradient-weighted Class Activation Mapping - Highlights important regions with a heatmap overlay',
                 badge: 'Recommended',
-                recommended: true
+                recommended: true,
+                legend: [
+                    { color: '#ff0000', label: 'High importance (red)' },
+                    { color: '#ffff00', label: 'Medium importance (yellow)' },
+                    { color: '#0000ff', label: 'Low importance (blue)' }
+                ]
             },
             {
                 value: 'lime',
                 name: 'LIME',
                 description: 'Local Interpretable Model-agnostic Explanations - Shows superpixel importance',
                 badge: 'Interpretable',
-                recommended: false
+                recommended: false,
+                legend: [
+                    { color: '#00ff00', label: 'Positive contribution (green)' },
+                    { color: '#ff0000', label: 'Negative contribution (red)' },
+                    { color: '#808080', label: 'Neutral regions (gray)' }
+                ]
+            }
+        ];
+
+        // Available XAI methods for audio fake detection
+        this._xaiMethodsAudio = [
+            {
+                value: 'gradcam',
+                name: 'Grad-CAM',
+                description: 'Gradient-weighted Class Activation Mapping - Highlights important frequency regions with a heatmap',
+                badge: 'Recommended',
+                recommended: true,
+                legend: [
+                    { color: '#ff0000', label: 'High importance (red)' },
+                    { color: '#ffff00', label: 'Medium importance (yellow)' },
+                    { color: '#0000ff', label: 'Low importance (blue)' }
+                ]
+            },
+            {
+                value: 'lime',
+                name: 'LIME',
+                description: 'Local Interpretable Model-agnostic Explanations - Shows superpixel importance on spectrogram',
+                badge: 'Interpretable',
+                recommended: false,
+                legend: [
+                    { color: '#00ff00', label: 'Positive contribution (green)' },
+                    { color: '#ff0000', label: 'Negative contribution (red)' },
+                    { color: '#ffff00', label: 'Boundary regions (yellow)' }
+                ]
+            },
+            {
+                value: 'shap',
+                name: 'SHAP',
+                description: 'SHapley Additive exPlanations - Game theory-based feature attribution',
+                badge: 'Advanced',
+                recommended: false,
+                legend: [
+                    { color: '#ff0000', label: 'Pushes toward fake (red)' },
+                    { color: '#ffffff', label: 'Neutral impact (white)' },
+                    { color: '#0000ff', label: 'Pushes toward real (blue)' }
+                ]
             }
         ];
 
@@ -65,9 +115,9 @@ class Config {
         // Application settings
         this._settings = {
             toastDuration: 5000,
-            requestTimeout: 60000, // 60 seconds for model inference
-            pingInterval: 5000,    // 5 seconds between health pings
-            pingTimeout: 3000      // 3 seconds timeout for ping requests
+            requestTimeout: 300000, // 5 minutes for model inference
+            pingInterval: 5000,     // 5 seconds between health pings
+            pingTimeout: 3000       // 3 seconds timeout for ping requests
         };
     }
 
@@ -151,11 +201,53 @@ class Config {
     }
 
     /**
-     * Get available XAI methods
+     * Get available XAI methods for lung cancer detection
      * @returns {Array} XAI methods configuration
      */
     get xaiMethods() {
-        return this._xaiMethods;
+        return this._xaiMethodsLung;
+    }
+
+    /**
+     * Get available XAI methods for lung cancer detection
+     * @returns {Array} XAI methods configuration
+     */
+    get xaiMethodsLung() {
+        return this._xaiMethodsLung;
+    }
+
+    /**
+     * Get available XAI methods for audio fake detection
+     * @returns {Array} XAI methods configuration
+     */
+    get xaiMethodsAudio() {
+        return this._xaiMethodsAudio;
+    }
+
+    /**
+     * Get XAI methods by detector type
+     * @param {string} detectorKey - Detector key
+     * @returns {Array} XAI methods for the detector
+     */
+    getXaiMethods(detectorKey) {
+        if (detectorKey === 'lungCancer') {
+            return this._xaiMethodsLung;
+        }
+        if (detectorKey === 'audioFake') {
+            return this._xaiMethodsAudio;
+        }
+        return this._xaiMethodsLung;
+    }
+
+    /**
+     * Get XAI method config by value
+     * @param {string} detectorKey - Detector key
+     * @param {string} methodValue - XAI method value
+     * @returns {Object|null} XAI method config
+     */
+    getXaiMethodConfig(detectorKey, methodValue) {
+        const methods = this.getXaiMethods(detectorKey);
+        return methods.find(m => m.value === methodValue) || null;
     }
 
     /**

@@ -98,6 +98,7 @@
     /* Layout */
     --header-height: 70px;
     --max-width: 1400px;
+    --footer-height: 96px;
 }
 
 /* Light Theme */
@@ -177,9 +178,9 @@ img {
    =================================================================== */
 
 #app {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     min-height: 100vh;
+    padding-bottom: var(--footer-height);
 }
 
 /* ===================================================================
@@ -520,15 +521,24 @@ img {
     display: block;
 }
 
+.audio-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+}
+
 .audio-preview-info {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    margin-bottom: var(--space-3);
+    flex: 1;
+    min-width: 0;
 }
 
 .audio-icon {
     font-size: var(--text-2xl);
+    flex-shrink: 0;
 }
 
 .audio-filename {
@@ -539,6 +549,31 @@ img {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.audio-remove-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.audio-remove-btn:hover {
+    background: var(--error);
+    color: white;
+}
+
+.audio-remove-btn span {
+    font-weight: 700;
 }
 
 .audio-player {
@@ -844,11 +879,15 @@ img {
     background: var(--bg-tertiary);
 }
 
+/* Danger state: Red - for cancer detected / fake audio detected */
+.result-prediction.danger,
 .result-prediction.positive {
     background: var(--error-bg);
     border: 1px solid var(--error);
 }
 
+/* Safe state: Green - for no cancer / authentic audio */
+.result-prediction.safe,
 .result-prediction.negative {
     background: var(--success-bg);
     border: 1px solid var(--success);
@@ -865,11 +904,13 @@ img {
     background: var(--bg-elevated);
 }
 
+.result-prediction.danger .prediction-icon,
 .result-prediction.positive .prediction-icon {
     background: var(--error);
     color: white;
 }
 
+.result-prediction.safe .prediction-icon,
 .result-prediction.negative .prediction-icon {
     background: var(--success);
     color: white;
@@ -892,10 +933,12 @@ img {
     color: var(--text-primary);
 }
 
+.result-prediction.danger .prediction-value,
 .result-prediction.positive .prediction-value {
     color: var(--error);
 }
 
+.result-prediction.safe .prediction-value,
 .result-prediction.negative .prediction-value {
     color: var(--success);
 }
@@ -917,6 +960,7 @@ img {
     font-family: var(--font-mono);
     color: var(--accent-primary);
 }
+
 
 /* XAI Visualization */
 .xai-visualization,
@@ -960,18 +1004,41 @@ img {
     display: block;
 }
 
+/* XAI Legend - Dynamic legends from config */
 .xai-legend {
-    display: flex;
-    justify-content: center;
-    gap: var(--space-4);
+    margin-top: var(--space-4);
     padding: var(--space-3);
-    background: rgba(0, 0, 0, 0.5);
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
 }
 
+.xai-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-4);
+}
+
+.xai-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.xai-legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.xai-legend-label {
+    white-space: nowrap;
+}
+
+/* Legacy legend styles for backward compatibility */
 .legend-item {
     display: flex;
     align-items: center;
@@ -1464,4 +1531,18 @@ img {
     .status-latency {
         display: none;
     }
+}
+
+.app-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: var(--footer-height);
+    padding: var(--space-6) var(--space-8);
+
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
 }

@@ -99,11 +99,27 @@ class LungCancerService {
         // Check decision string
         if (typeof decision === 'string') {
             const lower = decision.toLowerCase();
-            if (lower.includes('cancer') || lower.includes('suspected') || lower.includes('positive') || lower.includes('malignant')) {
-                return true;
-            }
-            if (lower.includes('healthy') || lower.includes('normal') || lower.includes('negative')) {
+            
+            // First check for negative indicators (no cancer, healthy, etc.)
+            // These take priority to avoid false positives from "no cancer" containing "cancer"
+            if (lower.includes('no cancer') || 
+                lower.includes('not detected') ||
+                lower.includes('healthy') || 
+                lower.includes('normal') || 
+                lower.includes('negative') ||
+                lower.includes('benign')) {
                 return false;
+            }
+            
+            // Then check for positive indicators (cancer detected)
+            if (lower.includes('cancer detected') ||
+                lower.includes('cancer suspected') ||
+                lower.includes('suspected') || 
+                lower.includes('positive') || 
+                lower.includes('malignant') ||
+                lower.includes('tumor') ||
+                lower.includes('abnormal')) {
+                return true;
             }
         }
         

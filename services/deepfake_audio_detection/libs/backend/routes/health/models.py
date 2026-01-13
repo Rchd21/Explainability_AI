@@ -1,5 +1,15 @@
+# ====== Code Summary ======
+# Defines the response model for a health check or ping endpoint, indicating basic operational status.
+
+# ====== Third-Party Library Imports ======
 from pydantic import BaseModel
-# TODO: ici on définit les modèles qui définissent les entrées sorties des endpoints associé ici à /health (nom du dossier)
+
 
 class PingResponse(BaseModel):
+    """
+    Response model for a ping or health-check endpoint.
+
+    Attributes:
+        ok (bool): Indicates whether the service is up and running.
+    """
     ok: bool

@@ -1,17 +1,30 @@
-loggerplusplus==1.0.1
-python-dotenv==1.1.1
-starlette==0.46.2
-uvicorn==0.35.0
+# ====== FastAPI & Server ======
 fastapi==0.115.14
-pyfiglet==1.0.4
+uvicorn==0.35.0
+starlette==0.46.2
+python-multipart
+
+# ====== PyTorch & Vision ======
 torch
 torchvision
 torchxrayvision
+
+# ====== Data & ML ======
+numpy<=2.3
 scikit-image
+numba
+shap
+
+# ====== XAI (Explainability) ======
 lime
 matplotlib
+
+# ====== Image Processing ======
 pillow
-numpy<=2.3
-shap
-numba
-python-multipart
+
+# ====== Logging ======
+loggerplusplus==1.0.1
+pyfiglet==1.0.4
+
+# ====== Utilities ======
+python-dotenv==1.1.1

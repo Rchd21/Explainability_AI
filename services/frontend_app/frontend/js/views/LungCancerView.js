@@ -7,6 +7,7 @@
 
 import { eventBus, Events } from '../core/EventBus.js';
 import { state } from '../core/State.js';
+import { config } from '../core/Config.js';
 import { FileUpload } from '../components/FileUpload.js';
 import { toast } from '../components/Toast.js';
 import { lungCancerService } from '../services/LungCancerService.js';
@@ -55,6 +56,7 @@ class LungCancerView {
             // XAI visualization
             xaiMethodName: document.getElementById('lung-xai-method-name'),
             xaiImage: document.getElementById('lung-xai-image'),
+            xaiLegend: document.getElementById('lung-xai-legend'),
             
             // Meta
             duration: document.getElementById('lung-duration'),
@@ -137,15 +139,18 @@ class LungCancerView {
         
         try {
             // Update loading steps
-            this._updateLoadingStep('Uploading image...');
-            await this._delay(500);
+            this._updateLoadingStep('Uploading CT scan image...');
+            await this._delay(300);
             
-            this._updateLoadingStep('Running AI model inference...');
+            this._updateLoadingStep('Preprocessing image for model input...');
+            await this._delay(200);
+            
+            this._updateLoadingStep('Running neural network inference...');
             
             const result = await lungCancerService.detect(file, this._selectedXaiMethod);
             
-            this._updateLoadingStep('Generating explainability visualization...');
-            await this._delay(300);
+            this._updateLoadingStep('Computing XAI explanation...');
+            await this._delay(200);
             
             this._showResults(result);
             eventBus.emit(Events.LUNG_ANALYSIS_SUCCESS, { result });
@@ -205,11 +210,14 @@ class LungCancerView {
         this._elements.resultsLoading?.classList.add('hidden');
         this._elements.resultsContent?.classList.remove('hidden');
         
-        // Update prediction display
+        // Update prediction display with correct colors
+        // Red for cancer detected (danger), Green for no cancer (safe)
         const predictionEl = this._elements.prediction;
         if (predictionEl) {
-            predictionEl.classList.remove('positive', 'negative');
-            predictionEl.classList.add(result.isPositive ? 'positive' : 'negative');
+            predictionEl.classList.remove('positive', 'negative', 'danger', 'safe');
+            // isPositive = cancer detected = danger (red)
+            // !isPositive = no cancer = safe (green)
+            predictionEl.classList.add(result.isPositive ? 'danger' : 'safe');
         }
         
         if (this._elements.predictionIcon) {
@@ -244,6 +252,9 @@ class LungCancerView {
             this._elements.xaiImage.src = result.xaiImageUrl;
         }
         
+        // Update XAI legend based on method
+        this._updateXaiLegend(result.xaiMethod);
+        
         // Update meta
         if (this._elements.duration) {
             this._elements.duration.textContent = `${result.duration.toFixed(2)}s`;
@@ -252,6 +263,34 @@ class LungCancerView {
         if (this._elements.xaiUsed) {
             this._elements.xaiUsed.textContent = xaiMethodNames[result.xaiMethod] || result.xaiMethod;
         }
+    }
+
+    /**
+     * Update XAI legend based on method
+     * @param {string} xaiMethod - XAI method used
+     */
+    _updateXaiLegend(xaiMethod) {
+        const legendContainer = this._elements.xaiLegend;
+        if (!legendContainer) return;
+
+        const methodConfig = config.getXaiMethodConfig('lungCancer', xaiMethod);
+        if (!methodConfig || !methodConfig.legend) {
+            legendContainer.innerHTML = '';
+            return;
+        }
+
+        let html = '<div class="xai-legend-items">';
+        methodConfig.legend.forEach(item => {
+            html += `
+                <div class="xai-legend-item">
+                    <span class="xai-legend-color" style="background-color: ${item.color}"></span>
+                    <span class="xai-legend-label">${item.label}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        legendContainer.innerHTML = html;
     }
 
     /**

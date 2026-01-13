@@ -37,6 +37,7 @@ class LungCancerDetectionRequest(BaseModel):
         Returns:
             LungCancerDetectionRequest: Parsed request model.
         """
+        # 1. Construct and return the Pydantic model using form input
         return cls(xai_method=xai_method)
 
 
@@ -45,10 +46,11 @@ class LungCancerDetectionResponse(BaseModel):
     Response model for lung cancer detection API.
 
     Attributes:
-        detector_result: Structured detection result (prediction, method, etc.)
-        duration: Total processing time in seconds
-        xai_image_base64: PNG-encoded explanation image (base64 string, no data-uri prefix)
+        detector_result (DetectorResult): Structured detection result (prediction, method, etc.)
+        duration (float): Total processing time in seconds.
+        xai_image_base64 (str): PNG-encoded explanation image (base64 string, no data-uri prefix).
     """
+
     detector_result: DetectorResult
     duration: float
     xai_image_base64: str = Field(

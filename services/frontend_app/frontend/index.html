@@ -12,9 +12,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+
+    <!-- Global zoom for better display -->
+    <style>
+        html {
+            font-size: 14px;
+            zoom: 0.7;
+        }
+    </style>
+
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
     <div id="app">
@@ -30,7 +39,7 @@
                 </div>
                 <div class="brand-text">
                     <h1>AI Detection Hub</h1>
-                    <span class="brand-tagline">Medical & Audio Analysis</span>
+                    <span class="brand-tagline">Explainable AI for Medical & Audio Analysis</span>
                 </div>
             </div>
             <div class="header-actions">
@@ -52,8 +61,8 @@
             </button>
             <button class="detector-tab" data-detector="audio-fake">
                 <span class="tab-icon">🎙️</span>
-                <span class="tab-label">Audio Fake Detection</span>
-                <span class="tab-badge coming-soon">Soon</span>
+                <span class="tab-label">Audio Deepfake Detection</span>
+                <span class="tab-badge">AI</span>
             </button>
         </nav>
 
@@ -64,7 +73,7 @@
                 <div class="view-header">
                     <div class="view-title-group">
                         <h2 class="view-title">Lung Cancer Detection</h2>
-                        <p class="view-description">Upload a lung CT scan image for AI-powered cancer detection with explainability visualization</p>
+                        <p class="view-description">Analyze lung CT scan images using deep learning with explainable AI visualization to understand model predictions.</p>
                     </div>
                 </div>
 
@@ -74,7 +83,7 @@
                         <div class="upload-card">
                             <h3 class="card-title">
                                 <span class="card-icon">📤</span>
-                                Upload Image
+                                CT Scan Image
                             </h3>
                             
                             <div class="upload-zone" id="lung-upload-zone">
@@ -85,17 +94,17 @@
                                             <path d="M8 32v6a4 4 0 004 4h24a4 4 0 004-4v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                                         </svg>
                                     </div>
-                                    <p class="upload-text">Drag & drop your CT scan image here</p>
-                                    <p class="upload-hint">or click to browse</p>
-                                    <p class="upload-formats">Supports: PNG, JPG, JPEG</p>
+                                    <p class="upload-text">Drop your CT scan image here</p>
+                                    <p class="upload-hint">or click to select a file</p>
+                                    <p class="upload-formats">PNG, JPG, JPEG • Max 10 MB</p>
                                 </div>
                                 <input type="file" id="lung-file-input" accept="image/png,image/jpeg,image/jpg" hidden>
                             </div>
 
                             <!-- Image Preview -->
-                            <div class="image-preview" id="lung-image-preview">
-                                <img id="lung-preview-img" src="" alt="Upload preview">
-                                <button class="preview-remove" id="lung-preview-remove" title="Remove image">×</button>
+                            <div class="image-preview hidden" id="lung-image-preview">
+                                <img id="lung-preview-img" src="" alt="CT scan preview">
+                                <button class="preview-remove" id="lung-preview-remove" title="Remove and select another image">×</button>
                                 <div class="preview-filename" id="lung-preview-filename"></div>
                             </div>
 
@@ -103,9 +112,9 @@
                             <div class="xai-selection">
                                 <h4 class="selection-title">
                                     <span class="selection-icon">🔬</span>
-                                    Explainability Method (XAI)
+                                    Explainability Method
                                 </h4>
-                                <p class="selection-description">Choose how the AI explains its decision</p>
+                                <p class="selection-description">Select how the model should explain its prediction</p>
                                 
                                 <div class="xai-options" id="lung-xai-options">
                                     <label class="xai-option">
@@ -115,7 +124,7 @@
                                                 <span class="xai-name">Grad-CAM</span>
                                                 <span class="xai-badge recommended">Recommended</span>
                                             </div>
-                                            <p class="xai-description">Gradient-weighted Class Activation Mapping - Highlights important regions with a heatmap overlay</p>
+                                            <p class="xai-description">Highlights regions that influenced the prediction using gradient-based heatmap visualization.</p>
                                         </div>
                                     </label>
                                     
@@ -126,7 +135,7 @@
                                                 <span class="xai-name">LIME</span>
                                                 <span class="xai-badge">Interpretable</span>
                                             </div>
-                                            <p class="xai-description">Local Interpretable Model-agnostic Explanations - Shows superpixel importance</p>
+                                            <p class="xai-description">Shows which image segments (superpixels) contributed most to the classification.</p>
                                         </div>
                                     </label>
                                 </div>
@@ -135,7 +144,7 @@
                             <!-- Submit Button -->
                             <button class="submit-btn" id="lung-submit-btn" disabled>
                                 <span class="btn-icon">🔍</span>
-                                <span class="btn-text">Analyze Image</span>
+                                <span class="btn-text">Run Analysis</span>
                                 <span class="btn-loader"></span>
                             </button>
                         </div>
@@ -152,8 +161,8 @@
                                         <path d="M40 25v30M25 40h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
                                     </svg>
                                 </div>
-                                <h3>No Analysis Yet</h3>
-                                <p>Upload an image and select an XAI method to begin analysis</p>
+                                <h3>Ready for Analysis</h3>
+                                <p>Upload a CT scan image to detect potential lung abnormalities</p>
                             </div>
 
                             <!-- Loading State -->
@@ -163,8 +172,8 @@
                                     <div class="spinner-ring"></div>
                                     <div class="spinner-ring"></div>
                                 </div>
-                                <h3>Analyzing Image...</h3>
-                                <p class="loading-step" id="lung-loading-step">Processing with AI model</p>
+                                <h3>Processing...</h3>
+                                <p class="loading-step" id="lung-loading-step">Initializing model</p>
                             </div>
 
                             <!-- Results Content -->
@@ -173,11 +182,11 @@
                                 <div class="result-prediction" id="lung-prediction">
                                     <div class="prediction-icon" id="lung-prediction-icon">✓</div>
                                     <div class="prediction-details">
-                                        <h3 class="prediction-label" id="lung-prediction-label">Prediction</h3>
+                                        <h3 class="prediction-label" id="lung-prediction-label">Diagnosis Result</h3>
                                         <p class="prediction-value" id="lung-prediction-value">--</p>
                                     </div>
                                     <div class="prediction-confidence">
-                                        <span class="confidence-label">Score</span>
+                                        <span class="confidence-label">Confidence</span>
                                         <span class="confidence-value" id="lung-confidence-value">--%</span>
                                     </div>
                                 </div>
@@ -185,27 +194,24 @@
                                 <!-- XAI Visualization -->
                                 <div class="xai-visualization">
                                     <h4 class="section-title">
-                                        <span class="section-icon">🎯</span>
-                                        Explainability Visualization
+                                        <span class="section-icon">🧠</span>
+                                        Model Explanation
                                     </h4>
                                     <p class="section-description">
-                                        <span id="lung-xai-method-name">Grad-CAM</span> highlights the regions that influenced the AI's decision
+                                        <span id="lung-xai-method-name">Grad-CAM</span> visualization — areas that influenced the model's decision
                                     </p>
                                     <div class="xai-image-container">
-                                        <img id="lung-xai-image" src="" alt="XAI visualization">
-                                        <div class="xai-legend">
-                                            <span class="legend-item high">High importance</span>
-                                            <span class="legend-item medium">Medium</span>
-                                            <span class="legend-item low">Low importance</span>
-                                        </div>
+                                        <img id="lung-xai-image" src="" alt="XAI explanation visualization">
                                     </div>
+                                    <!-- XAI Legend -->
+                                    <div class="xai-legend" id="lung-xai-legend"></div>
                                 </div>
 
                                 <!-- Additional Info -->
                                 <div class="result-meta">
                                     <div class="meta-item">
                                         <span class="meta-label">Processing Time</span>
-                                        <span class="meta-value" id="lung-duration">--s</span>
+                                        <span class="meta-value" id="lung-duration">--</span>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">XAI Method</span>
@@ -218,12 +224,12 @@
                 </div>
             </section>
 
-            <!-- Audio Fake Detection View (Coming Soon) -->
+            <!-- Audio Fake Detection View -->
             <section class="detector-view" id="audio-fake-view">
                 <div class="view-header">
                     <div class="view-title-group">
-                        <h2 class="view-title">Audio Fake Detection</h2>
-                        <p class="view-description">Upload an audio file to detect AI-generated or manipulated speech</p>
+                        <h2 class="view-title">Audio Deepfake Detection</h2>
+                        <p class="view-description">Detect AI-generated or manipulated audio using spectrogram analysis with explainable AI visualization.</p>
                     </div>
                 </div>
 
@@ -233,7 +239,7 @@
                         <div class="upload-card">
                             <h3 class="card-title">
                                 <span class="card-icon">📤</span>
-                                Upload Audio
+                                Audio File
                             </h3>
                             
                             <div class="upload-zone" id="audio-upload-zone">
@@ -244,27 +250,75 @@
                                             <path d="M8 32v6a4 4 0 004 4h24a4 4 0 004-4v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                                         </svg>
                                     </div>
-                                    <p class="upload-text">Drag & drop your audio file here</p>
-                                    <p class="upload-hint">or click to browse</p>
-                                    <p class="upload-formats">Supports: WAV, MP3, FLAC, OGG</p>
+                                    <p class="upload-text">Drop your audio file here</p>
+                                    <p class="upload-hint">or click to select a file</p>
+                                    <p class="upload-formats">WAV, MP3, FLAC, OGG • Max 50 MB</p>
                                 </div>
-                                <input type="file" id="audio-file-input" accept="audio/wav,audio/mp3,audio/mpeg,audio/flac,audio/ogg" hidden>
+                                <input type="file" id="audio-file-input" accept="audio/wav,audio/mp3,audio/mpeg,audio/flac,audio/ogg,.wav,.mp3,.flac,.ogg" hidden>
                             </div>
 
                             <!-- Audio Preview -->
                             <div class="audio-preview hidden" id="audio-preview">
-                                <div class="audio-preview-info">
-                                    <span class="audio-icon">🎵</span>
-                                    <span class="audio-filename" id="audio-preview-filename"></span>
-                                    <button class="preview-remove" id="audio-preview-remove" title="Remove audio">×</button>
+                                <div class="audio-preview-header">
+                                    <div class="audio-preview-info">
+                                        <span class="audio-icon">🎵</span>
+                                        <span class="audio-filename" id="audio-preview-filename">audio.wav</span>
+                                    </div>
+                                    <button class="audio-remove-btn" id="audio-preview-remove" title="Remove and select another file">
+                                        <span>✕</span> Remove
+                                    </button>
                                 </div>
                                 <audio controls id="audio-player" class="audio-player"></audio>
+                            </div>
+
+                            <!-- XAI Method Selection -->
+                            <div class="xai-selection">
+                                <h4 class="selection-title">
+                                    <span class="selection-icon">🔬</span>
+                                    Explainability Method
+                                </h4>
+                                <p class="selection-description">Select how the model should explain its prediction on the spectrogram</p>
+                                
+                                <div class="xai-options" id="audio-xai-options">
+                                    <label class="xai-option">
+                                        <input type="radio" name="audio-xai-method" value="gradcam" checked>
+                                        <div class="xai-option-content">
+                                            <div class="xai-option-header">
+                                                <span class="xai-name">Grad-CAM</span>
+                                                <span class="xai-badge recommended">Recommended</span>
+                                            </div>
+                                            <p class="xai-description">Highlights frequency regions that influenced the prediction using gradient-based heatmap.</p>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="xai-option">
+                                        <input type="radio" name="audio-xai-method" value="lime">
+                                        <div class="xai-option-content">
+                                            <div class="xai-option-header">
+                                                <span class="xai-name">LIME</span>
+                                                <span class="xai-badge">Interpretable</span>
+                                            </div>
+                                            <p class="xai-description">Shows which spectrogram segments contributed most to the classification.</p>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="xai-option">
+                                        <input type="radio" name="audio-xai-method" value="shap">
+                                        <div class="xai-option-content">
+                                            <div class="xai-option-header">
+                                                <span class="xai-name">SHAP</span>
+                                                <span class="xai-badge">Advanced</span>
+                                            </div>
+                                            <p class="xai-description">Game theory-based attribution showing features pushing toward fake (red) or real (blue).</p>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
 
                             <!-- Submit Button -->
                             <button class="submit-btn" id="audio-submit-btn" disabled>
                                 <span class="btn-icon">🔍</span>
-                                <span class="btn-text">Analyze Audio</span>
+                                <span class="btn-text">Run Analysis</span>
                                 <span class="btn-loader"></span>
                             </button>
                         </div>
@@ -281,8 +335,8 @@
                                         <path d="M40 25v30M25 40h30" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
                                     </svg>
                                 </div>
-                                <h3>No Analysis Yet</h3>
-                                <p>Upload an audio file to begin fake detection analysis</p>
+                                <h3>Ready for Analysis</h3>
+                                <p>Upload an audio file to detect potential AI-generated content</p>
                             </div>
 
                             <!-- Loading State -->
@@ -292,8 +346,8 @@
                                     <div class="spinner-ring"></div>
                                     <div class="spinner-ring"></div>
                                 </div>
-                                <h3>Analyzing Audio...</h3>
-                                <p class="loading-step" id="audio-loading-step">Processing audio signal</p>
+                                <h3>Processing...</h3>
+                                <p class="loading-step" id="audio-loading-step">Initializing model</p>
                             </div>
 
                             <!-- Results Content -->
@@ -302,7 +356,7 @@
                                 <div class="result-prediction" id="audio-prediction">
                                     <div class="prediction-icon" id="audio-prediction-icon">✓</div>
                                     <div class="prediction-details">
-                                        <h3 class="prediction-label" id="audio-prediction-label">Prediction</h3>
+                                        <h3 class="prediction-label" id="audio-prediction-label">Detection Result</h3>
                                         <p class="prediction-value" id="audio-prediction-value">--</p>
                                     </div>
                                     <div class="prediction-confidence">
@@ -311,27 +365,31 @@
                                     </div>
                                 </div>
 
-                                <!-- Spectrogram Visualization -->
-                                <div class="spectrogram-visualization">
+                                <!-- XAI Visualization -->
+                                <div class="xai-visualization">
                                     <h4 class="section-title">
-                                        <span class="section-icon">📊</span>
-                                        Audio Analysis
+                                        <span class="section-icon">🧠</span>
+                                        Model Explanation
                                     </h4>
-                                    <p class="section-description">Spectrogram and anomaly detection visualization</p>
-                                    <div class="spectrogram-container">
-                                        <img id="audio-spectrogram" src="" alt="Audio spectrogram">
+                                    <p class="section-description">
+                                        <span id="audio-xai-method-name">Grad-CAM</span> visualization — areas that influenced the model's decision
+                                    </p>
+                                    <div class="xai-image-container">
+                                        <img id="audio-xai-image" src="" alt="XAI explanation visualization">
                                     </div>
+                                    <!-- XAI Legend -->
+                                    <div class="xai-legend" id="audio-xai-legend"></div>
                                 </div>
 
                                 <!-- Additional Info -->
                                 <div class="result-meta">
                                     <div class="meta-item">
                                         <span class="meta-label">Processing Time</span>
-                                        <span class="meta-value" id="audio-duration">--s</span>
+                                        <span class="meta-value" id="audio-duration">--</span>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">Audio Length</span>
-                                        <span class="meta-value" id="audio-length">--</span>
+                                        <span class="meta-label">XAI Method</span>
+                                        <span class="meta-value" id="audio-xai-used">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -343,8 +401,20 @@
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p>&copy; 2025 AI Detection Hub. All rights reserved.</p>
-            <p class="footer-disclaimer">This tool is for educational and research purposes only. Always consult healthcare professionals for medical decisions.</p>
+            <p>&copy; 2025 AI Detection and XAI — ESILV Master Data & AI (XAI Course)</p>
+
+            <p class="footer-group">
+                Project group (DIA1):
+                <br>
+                Leo Gasperowicz<br>
+                Loïc Beaurain<br>
+                Florian Barre<br>
+                Rachid Ait Ameur
+            </p>
+
+            <p class="footer-disclaimer">
+                Academic project conducted as part of the DIA1 track.
+            </p>
         </footer>
     </div>
 

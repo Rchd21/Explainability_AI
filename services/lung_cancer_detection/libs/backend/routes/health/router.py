@@ -1,13 +1,12 @@
-# ====== Standard Library Imports ======
-from typing import Any
+# ====== Code Summary ======
+# Defines a lightweight FastAPI route for service health checking (`/ping`), returning a simple boolean response.
 
-# ====== Third-party Library Imports ======
+
+# ====== Third-Party Library Imports ======
 from fastapi import APIRouter
 
-# ====== Local Project Imports ======
+# ====== Internal Project Imports ======
 from ...utils.error_handling import auto_handle_errors
-from ...context import CONTEXT
-# TODO: si y'a besoin d'utiliser des classes (exemple: classe dédié à la détection de fake audio, alors on ajoute un attribut au contexte et on l'utilise via le CONTEXT. Cette classe doit être instanciée dans l'entrypoint
 from .models import PingResponse
 
 # ====== Router Definition ======
@@ -17,4 +16,10 @@ router = APIRouter()
 @auto_handle_errors
 @router.get("/ping", response_model=PingResponse)
 def ping() -> PingResponse:
+    """
+    Health check endpoint to verify the service is up and responsive.
+
+    Returns:
+        PingResponse: A response with `ok=True` if the service is healthy.
+    """
     return PingResponse(ok=True)

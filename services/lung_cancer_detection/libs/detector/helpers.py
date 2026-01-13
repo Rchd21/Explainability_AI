@@ -9,7 +9,9 @@ import torch
 
 
 class DetectorHelpers:
-    """Utility helpers for device detection and model inspection."""
+    """
+    Utility helpers for device detection and model inspection.
+    """
 
     logger = loggerplusplus.bind(identifier="DetectorHelpers")
 
@@ -26,14 +28,17 @@ class DetectorHelpers:
         Returns:
             torch.device: Selected device.
         """
+        # 1. Check for MPS (Metal Performance Shaders - Apple Silicon)
         if torch.backends.mps.is_available():
             cls.logger.debug("Auto device detection selected MPS")
             return torch.device("mps")
 
+        # 2. Check for CUDA (NVIDIA GPU)
         if torch.cuda.is_available():
             cls.logger.debug("Auto device detection selected CUDA")
             return torch.device("cuda")
 
+        # 3. Fallback to CPU
         cls.logger.debug("Auto device detection selected CPU")
         return torch.device("cpu")
 
@@ -51,14 +56,17 @@ class DetectorHelpers:
         Returns:
             torch.device: Device where the model lives.
         """
-        first_param: None | torch.nn.Parameter = next(model.parameters(), None)
+        # 1. Get the first parameter of the model (or None)
+        first_param: torch.nn.Parameter = next(model.parameters(), None)
 
+        # 2. Handle model with no parameters
         if first_param is None:
             cls.logger.warning(
                 "Model has no parameters; falling back to CPU device detection"
             )
             return torch.device("cpu")
 
+        # 3. Return the device of the first parameter
         device: torch.device = first_param.device
         cls.logger.debug(f"Detected model device: {device}")
         return device
