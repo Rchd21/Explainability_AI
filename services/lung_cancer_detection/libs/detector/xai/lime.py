@@ -1,25 +1,18 @@
-# ====== Code Summary ======
-# This module implements `XaiLime`, an explainability method based on LIME for interpreting
-# chest X-ray predictions from TorchXRayVision-style models.
-# - LIME perturbations are generated from an RGB view derived from the model input tensor `x`.
-# - Predictions are computed by mapping perturbed RGB images back to the model preprocessing pipeline.
-# - The final visualization is rendered on a clean base image (base_image) when provided.
-
 from __future__ import annotations
 
-# ====== Standard Library Imports ======
 import uuid
-from typing import Callable
+from typing import Callable, Optional
 
-# ====== Third-Party Library Imports ======
 import numpy as np
 import torch
 import torchxrayvision as xrv
 from lime import lime_image
-from skimage.segmentation import mark_boundaries
+from scipy.ndimage import gaussian_filter
+from skimage.segmentation import slic
 
-# ====== Internal Project Imports ======
 from .base import XaiBase
+from .helpers import XaiHelpers
+from .overlay_config import OverlayConfig
 from ..helpers import DetectorHelpers
 
 TorchDevice = torch.device
@@ -27,183 +20,200 @@ TorchDevice = torch.device
 
 class XaiLime(XaiBase):
     """
-    Generate LIME explanations for TorchXRayVision-style chest X-ray classifiers.
+    Faster + nicer LIME visualization for TorchXRayVision models.
 
-    This explainer:
-      1) Converts the input tensor (single-channel) to an RGB image in [0, 1] for LIME.
-      2) Lets LIME perturb the image.
-      3) Maps LIME perturbations back to the model's expected grayscale preprocessing pipeline.
-      4) Produces an RGB overlay with segment boundaries.
+    - No config dataclass: defaults are stored as init params.
+    - Signed overlay: red positive / blue negative, alpha based on magnitude.
     """
 
-    # ====== Static Utility Methods ======
+    def __init__(
+            self,
+            model: torch.nn.Module,
+            *,
+            # LIME speed/quality knobs
+            num_samples: int = 900,
+            slic_n_segments: int = 350,
+            slic_compactness: float = 10.0,
+            slic_sigma: float = 0.8,
+            # Rendering knobs
+            heat_blur_sigma: float = 1.2,  # visual smoothing
+    ) -> None:
+        super().__init__(model)
 
+        self._num_samples = int(num_samples)
+        self._slic_n_segments = int(slic_n_segments)
+        self._slic_compactness = float(slic_compactness)
+        self._slic_sigma = float(slic_sigma)
+        self._heat_blur_sigma = float(heat_blur_sigma)
+
+        # Reuse these across calls (speed win)
+        self._cropper = xrv.datasets.XRayCenterCrop()
+        self._resizer = xrv.datasets.XRayResizer(224)
+        self._explainer = lime_image.LimeImageExplainer()
+
+        # Prebuild segmentation fn (no need to recreate each call)
+        self._segmentation_fn = self._make_slic_segmenter(
+            n_segments=self._slic_n_segments,
+            compactness=self._slic_compactness,
+            sigma=self._slic_sigma,
+        )
+
+    # ----------------------------
+    # Image helpers (TorchXRayVision specifics)
+    # ----------------------------
     @staticmethod
     def _x_to_rgb01(x: torch.Tensor) -> np.ndarray:
-        # 1. Extract and normalize the grayscale channel to RGB [0,1]
-        img: np.ndarray = x[0, 0].detach().cpu().numpy().astype(np.float32)
-        img_min: float = float(img.min())
-        img_max: float = float(img.max())
-        img01: np.ndarray = (img - img_min) / (img_max - img_min + 1e-8)
-        return np.stack([img01, img01, img01], axis=-1)
+        """
+        Expect x [1,1,H,W]. Returns RGB float32 [H,W,3] in [0,1].
+        """
+        if x.ndim != 4 or x.shape[0] != 1 or x.shape[1] != 1:
+            raise ValueError(f"Expected x shape [1,1,H,W], got {tuple(x.shape)}")
+
+        img = x[0, 0].detach().cpu().numpy().astype(np.float32)
+        img01 = XaiHelpers.normalize_01(img)
+        return np.stack([img01, img01, img01], axis=-1).astype(np.float32)
 
     @staticmethod
-    def _gray01_to_rgb01(gray: np.ndarray) -> np.ndarray:
-        # 1. Validate input shape
-        if gray.ndim != 2:
-            raise ValueError(f"Expected grayscale image [H,W], got shape {gray.shape}")
+    def _make_slic_segmenter(n_segments: int, compactness: float, sigma: float) -> Callable[[np.ndarray], np.ndarray]:
+        n_segments = int(n_segments)
 
-        # 2. Normalize to [0,1] if needed and expand to RGB
-        g = gray.astype(np.float32)
-        if g.max() > 1.0:
-            g = g / 255.0
-        g = np.clip(g, 0.0, 1.0)
-        return np.stack([g, g, g], axis=-1)
+        def segmenter(img: np.ndarray) -> np.ndarray:
+            return slic(
+                img,
+                n_segments=n_segments,
+                compactness=float(compactness),
+                sigma=float(sigma),
+                start_label=0,
+            )
 
-    @staticmethod
-    def _preprocess_rgb_to_model_input(
-            image_rgb: np.ndarray,
-            cropper: Callable[[np.ndarray], np.ndarray],
-            resizer: Callable[[np.ndarray], np.ndarray],
-    ) -> np.ndarray:
-        # 1. Convert RGB to grayscale and normalize
-        gray01 = image_rgb.mean(axis=2).astype(np.float32)
-        gray = xrv.datasets.normalize(gray01, 1.0)
+        return segmenter
 
-        # 2. Add channel dimension and apply transforms
-        gray = gray[np.newaxis, :, :]
-        gray = cropper(gray)
-        gray = resizer(gray)
+    # ----------------------------
+    # Model preprocessing
+    # ----------------------------
+    def _preprocess_rgb_batch_to_model_input(self, images_rgb: np.ndarray) -> np.ndarray:
+        """
+        Convert a batch of RGB images [N,H,W,3] in [0,1] into model inputs [N,1,224,224] (numpy).
+        """
+        imgs = np.asarray(images_rgb, dtype=np.float32)
+        if float(imgs.max()) > 1.0:
+            imgs = imgs / 255.0
+        imgs = np.clip(imgs, 0.0, 1.0)
 
-        return gray
+        # RGB -> grayscale
+        gray01 = imgs.mean(axis=3).astype(np.float32)  # [N,H,W]
+        # Normalize like torchxrayvision expects
+        gray = xrv.datasets.normalize(gray01, 1.0)  # [N,H,W]
 
-    # ====== Private Methods ======
+        outs: list[np.ndarray] = []
+        for i in range(gray.shape[0]):
+            g = gray[i][np.newaxis, :, :]  # [1,H,W]
+            g = self._cropper(g)
+            g = self._resizer(g)  # [1,224,224]
+            outs.append(g)
 
-    def _predict_proba_for_lime(
-            self,
-            images_rgb: np.ndarray,
-            class_idx: int,
-            device: TorchDevice,
-    ) -> np.ndarray:
-        # 1. Instantiate preprocessing tools
-        cropper = xrv.datasets.XRayCenterCrop()
-        resizer = xrv.datasets.XRayResizer(224)
+        return np.stack(outs, axis=0)  # [N,1,224,224]
 
-        # 2. Preprocess each image in the batch
-        inputs: list[torch.Tensor] = []
-        for im in images_rgb:
-            gray = self._preprocess_rgb_to_model_input(im, cropper, resizer)
-            xt = torch.from_numpy(gray).unsqueeze(0).float().to(device)
-            inputs.append(xt)
+    def _predict_proba_for_lime(self, images_rgb: np.ndarray, class_idx: int, device: TorchDevice) -> np.ndarray:
+        xb_np = self._preprocess_rgb_batch_to_model_input(images_rgb)  # [N,1,224,224]
+        xb = torch.from_numpy(xb_np).to(device=device, dtype=torch.float32)
 
-        # 3. Batch inference
-        xb = torch.cat(inputs, dim=0)
-        with torch.no_grad():
+        self._model.eval()
+        with torch.inference_mode():
             out = self._model(xb)
             score_t = out[:, class_idx]
+            # Convert logits to probs if needed
+            if score_t.min().item() < 0.0 or score_t.max().item() > 1.0:
+                score_t = torch.sigmoid(score_t)
 
-        # 4. Format as 2-class soft scores [not_target, target]
         score = score_t.detach().cpu().numpy().astype(np.float32)
         score = np.clip(score, 0.0, 1.0)
+
+        # LIME expects a "probability" vector per sample.
+        # We'll return [P(class0), P(class1)] for a binary surrogate.
         return np.stack([1.0 - score, score], axis=1)
 
-    # ====== Public API ======
+    # ----------------------------
+    # Heatmap building
+    # ----------------------------
+    @staticmethod
+    def _lime_weights_to_pixel_heatmap(explanation, label: int) -> np.ndarray:
+        segments: np.ndarray = explanation.segments
+        weights_list = explanation.local_exp[label]
+        seg2w = {int(seg_id): float(w) for seg_id, w in weights_list}
 
+        heat = np.zeros_like(segments, dtype=np.float32)
+        for seg_id in np.unique(segments):
+            heat[segments == seg_id] = np.float32(seg2w.get(int(seg_id), 0.0))
+        return heat
+
+    # ----------------------------
+    # Public API
+    # ----------------------------
     def explain(
             self,
             x: torch.Tensor,
             target_label: str,
             base_image: np.ndarray,
-            num_samples: int = 1000,
-            num_features: int = 10,
+            overlay_cfg: OverlayConfig,
+            **kwargs,
     ) -> np.ndarray:
-        """
-        Generate a LIME explanation overlay for a target label.
 
-        Args:
-            x (torch.Tensor): Input tensor [1, 1, H, W] (model input).
-            target_label (str): Label name from `self._model.pathologies`.
-            num_samples (int): Number of LIME perturbation samples.
-            num_features (int): Superpixels to keep in the final explanation.
-            base_image (np.ndarray | None): Optional grayscale [H,W] for display overlay.
-
-        Returns:
-            np.ndarray: RGB image [H, W, 3] in [0,1] with boundary-marked explanation overlay.
-        """
-        # 1. Generate run ID for traceability
         run_id = uuid.uuid4().hex[:12]
         self.logger.info(
-            f"START generating LIME explanation (run_id={run_id}, target_label='{target_label}', "
-            f"num_samples={num_samples}, num_features={num_features})"
+            f"START LIME viz (run_id={run_id}, target_label='{target_label}', "
+            f"num_samples={self._num_samples}, n_segments={self._slic_n_segments})"
         )
 
-        try:
-            # 2. Validate model and target label
-            if not hasattr(self._model, "pathologies"):
-                raise ValueError("Model must have .pathologies (TorchXRayVision DenseNet).")
+        if not hasattr(self._model, "pathologies"):
+            raise ValueError("Model must have .pathologies (TorchXRayVision DenseNet).")
 
-            pathologies = list(self._model.pathologies)
-            if target_label not in pathologies:
-                raise ValueError(f"Unknown label '{target_label}'. Available: {pathologies}")
+        pathologies = list(self._model.pathologies)
+        if target_label not in pathologies:
+            raise ValueError(f"Unknown label '{target_label}'. Available: {pathologies}")
 
-            class_idx = pathologies.index(target_label)
-            device = DetectorHelpers.get_model_device(self._model)
+        class_idx = pathologies.index(target_label)
+        device = DetectorHelpers.get_model_device(self._model)
 
-            self.logger.debug(
-                f"PROGRESS resolved target class index (run_id={run_id}, class_idx={class_idx}, device='{device}')"
-            )
+        # LIME perturbation base (RGB in [0,1])
+        img_rgb_for_lime = self._x_to_rgb01(x).astype(np.float64)
 
-            # 3. Generate RGB image from tensor for perturbation
-            img_rgb_for_lime = self._x_to_rgb01(x)
+        # Display base (also RGB01)
+        if base_image is None:
+            base_rgb01 = img_rgb_for_lime.astype(np.float32)
+        else:
+            base_gray = XaiHelpers.ensure_gray_01(base_image)
+            if base_gray.shape != img_rgb_for_lime.shape[:2]:
+                raise ValueError("base_image must match x spatial dimensions.")
+            base_rgb01 = XaiHelpers.gray_to_rgb01(base_gray)
 
-            # 4. Prepare image for display
-            if base_image is None:
-                img_rgb_for_display = img_rgb_for_lime
-            else:
-                img_rgb_for_display = self._gray01_to_rgb01(base_image)
-                if img_rgb_for_display.shape[:2] != img_rgb_for_lime.shape[:2]:
-                    raise ValueError(
-                        f"base_image shape {img_rgb_for_display.shape[:2]} does not match x shape {img_rgb_for_lime.shape[:2]}"
-                    )
+        predict_fn = lambda imgs: self._predict_proba_for_lime(imgs, class_idx=class_idx, device=device)
 
-            # 5. Wrap model prediction for LIME
-            predict_fn = lambda imgs: self._predict_proba_for_lime(
-                imgs, class_idx=class_idx, device=device
-            )
+        explanation = self._explainer.explain_instance(
+            img_rgb_for_lime,
+            classifier_fn=predict_fn,
+            hide_color=0,
+            num_samples=self._num_samples,
+            segmentation_fn=self._segmentation_fn,
+        )
 
-            # 6. Run LIME explainer
-            explainer = lime_image.LimeImageExplainer()
-            self.logger.debug(f"PROGRESS running LIME explainer (run_id={run_id})")
+        # Superpixel weights -> pixel heat (signed)
+        heat = self._lime_weights_to_pixel_heatmap(explanation, label=1)
 
-            explanation = explainer.explain_instance(
-                img_rgb_for_lime,
-                classifier_fn=predict_fn,
-                labels=(1,),
-                hide_color=0,
-                num_samples=num_samples,
-            )
+        # Normalize nicely to [-1,1]
+        heat_norm = XaiHelpers.clip_and_normalize_signed(heat, clip_percentile=overlay_cfg.clip_percentile)
 
-            # 7. Extract mask and render overlay
-            _temp, mask = explanation.get_image_and_mask(
-                label=1,
-                positive_only=True,
-                num_features=num_features,
-                hide_rest=False,
-            )
+        # Pretty smoothing (visual-only)
+        if self._heat_blur_sigma > 0.0:
+            heat_norm = gaussian_filter(heat_norm, sigma=self._heat_blur_sigma).astype(np.float32)
+            heat_norm = np.clip(heat_norm, -1.0, 1.0)
 
-            overlay = mark_boundaries(img_rgb_for_display, mask)
-            result = np.clip(overlay.astype(np.float32), 0.0, 1.0)
+        # Signed overlay render (returns uint8 RGB)
+        result_u8 = XaiHelpers.render_signed_overlay_rgb01(
+            base_rgb01=base_rgb01,
+            signed_heat=heat_norm,
+            cfg=overlay_cfg,
+        )
 
-            # 8. Return result
-            self.logger.info(
-                f"END generating LIME explanation (run_id={run_id}, target_label='{target_label}', result_shape={result.shape})"
-            )
-            return result
-
-        except Exception as exc:
-            # 9. Log and raise exception
-            self.logger.error(
-                f"END generating LIME explanation with error (run_id={run_id}, "
-                f"exc_type='{type(exc).__name__}', message='{exc}')"
-            )
-            raise
+        self.logger.info(f"END LIME viz (run_id={run_id}, result_shape={result_u8.shape})")
+        return result_u8

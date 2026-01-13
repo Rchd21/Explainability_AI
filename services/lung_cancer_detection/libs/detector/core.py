@@ -15,7 +15,7 @@ from public_models.detector import (
 )
 
 # ====== Internal Project Imports ======
-from .xai import XaiLime, XaiGradCAM
+from .xai import XaiLime, XaiGradCAM, OverlayConfig
 from .model import LungDetectorModel
 
 
@@ -93,7 +93,8 @@ class LungCancerDetector(LoggerClass):
         xai_explain: np.ndarray = explainer.explain(
             x=x,
             target_label=self.target_label,
-            base_image=explain_image_base
+            base_image=explain_image_base,
+            overlay_cfg=OverlayConfig()
         )
 
         self.logger.info(

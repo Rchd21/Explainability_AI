@@ -1,35 +1,39 @@
 # ====== Code Summary ======
-# This module defines an abstract base class `XaiBase` for explainability (XAI) methods.
-# It wraps a PyTorch model and provides a logging-enabled interface for subclasses
-# to implement specific explainability algorithms.
+# Abstract base class for PyTorch-based explainable AI (XAI) methods.
+# Defines a unified interface (`explain`) for generating model visualizations,
+# supports logging, and wraps a PyTorch model instance for use by XAI implementations.
+
+from __future__ import annotations
 
 # ====== Standard Library Imports ======
 from abc import ABC, abstractmethod
 
 # ====== Third-Party Library Imports ======
-from loggerplusplus import LoggerClass
 import numpy as np
 import torch
+from loggerplusplus import LoggerClass
+
+# ====== Local Project Imports ======
+from .overlay_config import OverlayConfig
 
 
 class XaiBase(ABC, LoggerClass):
     """
-    Abstract base class for XAI (explainable AI) methods.
+    Abstract base class for XAI (Explainable AI) methods.
 
-    Wraps a PyTorch model and enforces implementation of an `explain` method
-    for generating explainability outputs.
+    Wraps a PyTorch model and provides structured logging.
+    Requires implementing the `explain` method for generating visual explanations.
 
-    Inherits from:
-        - ABC: To enforce abstract method definitions.
-        - LoggerClass: For consistent logging across subclasses.
+    Attributes:
+        _model (torch.nn.Module): The PyTorch model to be explained.
     """
 
     def __init__(self, model: torch.nn.Module) -> None:
         """
-        Initialize the base class with the given PyTorch model.
+        Initialize the XAI base class with a given model and logger.
 
         Args:
-            model (torch.nn.Module): The model to explain.
+            model (torch.nn.Module): The model to be explained.
         """
         LoggerClass.__init__(self)
         self._model: torch.nn.Module = model
@@ -41,6 +45,7 @@ class XaiBase(ABC, LoggerClass):
             x: torch.Tensor,
             target_label: str,
             base_image: np.ndarray,
+            overlay_cfg: OverlayConfig,
             **kwargs,
     ) -> np.ndarray:
         """
@@ -67,6 +72,9 @@ class XaiBase(ABC, LoggerClass):
                 Expected value range: [0, 1] or [0, 255].
                 If provided, the explanation will be rendered on top of this image.
                 If None, the explainer may fall back to a visualization derived from `x`.
+
+            overlay_cfg (OverlayConfig):
+                Configuration specifying alpha and clipping settings for visual overlays.
 
             **kwargs:
                 Additional explainer-specific parameters

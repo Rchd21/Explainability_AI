@@ -1,9 +1,19 @@
-# ====== XAI Module Exports ======
-# Exposes all XAI (Explainable AI) implementations.
-
+# ------------------- XAI Base Class ------------------- #
 from .base import XaiBase
+
+# ------------------- XAI Explainers ------------------- #
 from .lime import XaiLime
 from .gradcam import XaiGradCAM
 from .shap import XaiShap
 
-__all__ = ["XaiBase", "XaiLime", "XaiGradCAM", "XaiShap"]
+# ----------------- XAI Configuration ------------------ #
+from .overlay_config import OverlayConfig
+
+# ------------------- Public API ------------------- #
+__all__ = [
+    "XaiBase",
+    "XaiLime",
+    "XaiGradCAM",
+    "XaiShap",
+    "OverlayConfig",
+]

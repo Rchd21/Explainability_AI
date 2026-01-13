@@ -16,9 +16,12 @@ from public_models.detector import XaiMethod, DetectorResult, AudioPrediction
 
 # ====== Local Project Imports ======
 from .model import AudioDetectorModel
-from .xai.gradcam import XaiGradCAM
-from .xai.lime import XaiLime
-from .xai.shap import XaiShap
+from .xai import (
+    XaiGradCAM,
+    XaiLime,
+    XaiShap,
+    OverlayConfig
+)
 
 
 class FakeAudioDetector(LoggerClass):
@@ -108,6 +111,7 @@ class FakeAudioDetector(LoggerClass):
             x=x,
             class_index=prediction.class_index,
             base_image=explain_image,
+            overlay_cfg=OverlayConfig()
         )
 
         self.logger.info(f"[AUDIO_DETECTOR] XAI completed | method={xai_method}")
