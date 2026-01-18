@@ -4,7 +4,7 @@
 
 The team is composed of the following members:
 - **Ait Ameur Rachid**
-- **Léo**
+- **Gasperowicz Léo**
 - **Barre Florian**
 - **Beaurain Loïc**
 
